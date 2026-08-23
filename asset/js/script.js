@@ -1,0 +1,1841 @@
+function rupiah(n) {
+    return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+}
+window.rupiah = rupiah;
+
+console.info('[CETAK.OS] script.js loaded — build 2026-08-22 (Alpine init fix)');
+
+const KPI_ICONS = {
+    order: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 3H15L14 6H10L9 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M5 6H19L18 21H6L5 6Z" stroke="currentColor" stroke-width="1.8"/></svg>',
+    wait: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7V12L15.5 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    print: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="4" y="9" width="16" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V4H17V9" stroke="currentColor" stroke-width="1.8"/><rect x="7" y="16" width="10" height="5" stroke="currentColor" stroke-width="1.8"/></svg>',
+    done: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    money: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 1V23M17 5H9.5C7.01 5 5 7.01 5 9.5C5 11.99 7.01 14 9.5 14H14.5C16.99 14 19 16.01 19 18.5C19 20.99 16.99 23 14.5 23H7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    piutang: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 8V12L15 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    avg: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 17L9 11L13 15L21 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+function app() {
+    return {
+        // ---------- role / session identity (no login gate — set once here) ----------
+        loginRole: 'Owner',
+        loginUserName: 'Admin KugiyaiTobe',
+        loginUserAvatar: '',
+        loginCustomerId: 1,
+        page: 'dashboard',
+        custSearch: '',
+        orderFilter: 'Semua',
+        reportPeriod: 'Bulanan',
+        selectedOrder: null,
+        selectedCustomer: null,
+        selectedDesign: null,
+        globalSearch: '',
+        notifOpen: false,
+        toasts: [],
+        revenueRange: 'harian',
+
+        avatarPresets: [
+            { label: 'Admin Cetak', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Operator Pro', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Desainer Grafis', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Kasir Utama', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Pimpinan / Owner', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Klien Percetakan', url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=160&q=80' },
+        ],
+
+        // ---------- nav ----------
+        navItemsStaff: [
+            { key: 'dashboard', label: 'Dashboard', desc: 'Ringkasan performa percetakan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'pelanggan', label: 'Data Pelanggan', desc: 'Kelola profil & riwayat pelanggan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20C4.5 16.4 7.85 13.5 12 13.5C16.15 13.5 19.5 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' },
+            { key: 'order', label: 'Pemesanan', desc: 'Kelola order dari masuk hingga tuntas', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 3H15L14 6H10L9 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 6H19L18 21H6L5 6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>' },
+            { key: 'desain', label: 'Manajemen Desain', desc: 'Upload, revisi, dan persetujuan desain', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M21 15L16 10L5 21" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'produksi', label: 'Produksi', desc: 'Papan alur status pengerjaan cetak', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 21V13C4 12.4477 4.44772 12 5 12H9V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21V8C10 7.44772 10.4477 7 11 7H14C14.5523 7 15 7.44772 15 8V21" stroke="currentColor" stroke-width="1.8"/><path d="M16 21V4C16 3.44772 16.4477 3 17 3H19C19.5523 3 20 3.44772 20 4V21" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'pembayaran', label: 'Pembayaran', desc: 'DP, pelunasan, dan riwayat transaksi', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M2 10H22" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'stok', label: 'Stok / Bahan', desc: 'Kelola bahan baku dan tinta', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 8L12 3L3 8L12 13L21 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8V16L12 21L21 16V8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 13V21" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'laporan', label: 'Laporan', desc: 'Analisis penjualan dan performa bisnis', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M12 20V4M20 20V14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' },
+            { key: 'users', label: 'User & Hak Akses', desc: 'Kelola pengguna dan peran sistem', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15C7.5 15 4 17 4 20V21H20V20C20 17 16.5 15 12 15Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'landing', label: 'Landing Page', desc: 'Kelola konten & promo halaman depan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9L12 3L21 9V20C21 20.5523 20.5523 21 20 21H15V15H9V21H4C3.44772 21 3 20.5523 3 20V9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>' },
+        ],
+        navItemsCustomer: [
+            { key: 'dashboard', label: 'Dashboard Saya', desc: 'Ringkasan pesanan & tagihan Anda', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'order', label: 'Pesanan Saya', desc: 'Lihat status & buat pesanan baru', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 3H15L14 6H10L9 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 6H19L18 21H6L5 6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>' },
+            { key: 'desain', label: 'Desain Saya', desc: 'Tinjau dan setujui desain cetakan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M21 15L16 10L5 21" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'pembayaran', label: 'Pembayaran Saya', desc: 'Riwayat transaksi dan sisa tagihan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M2 10H22" stroke="currentColor" stroke-width="1.8"/></svg>' },
+        ],
+        get navItems() { return this.loginRole === 'Pelanggan' ? this.navItemsCustomer : this.navItemsStaff; },
+        get currentNav() { return this.navItems.find(n => n.key === this.page) || this.navItems[0]; },
+
+        // ---------- forms ----------
+        formProfile: { nama: '', email: '', hp: '', instansi: '', avatar: '', passwordLama: '', passwordBaru: '', konfirmasiPassword: '', role: '' },
+        profilError: '',
+        formOrder: { pelangganId: '', jenis: 'Baliho Flexi', panjang: null, lebar: null, satuan: 'm', jumlah: 1, hargaM2: 25000, biayaDesain: 0, biayaFinishing: 0, dp: 0, deadline: '', catatan: '' },
+        orderError: '',
+        formPelanggan: { nama: '', hp: '', alamat: '', instansi: '' },
+        pelangganError: '',
+        formDesain: { orderNo: '', file: '', gambar: '', catatan: '' },
+        desainError: '',
+        desainFilter: 'Semua',
+        desainSearch: '',
+        desainPresets: [
+            { label: 'Stiker & Label Cutting', url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80', file: 'stiker_cutting_final.ai' },
+            { label: 'Baliho Digital Printing', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80', file: 'baliho_flexi_3x4.cdr' },
+            { label: 'Banner Roll Up Pameran', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80', file: 'banner_rollup_expo.pdf' },
+            { label: 'Baliho Toko Promosi', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80', file: 'baliho_toko_v2.ai' },
+            { label: 'Spanduk Acara Gereja', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80', file: 'spanduk_event_final.cdr' },
+            { label: 'Backdrop Panggung Event', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80', file: 'stage_backdrop_v1.ai' },
+        ],
+        formBayar: { orderNo: '', jenis: 'DP', metode: 'Tunai', jumlah: null },
+        bayarError: '',
+        formStok: { bahan: '', tipe: 'Stok Masuk', jumlah: null },
+        stokError: '',
+        formUser: { nama: '', email: '', role: 'Admin' },
+        userError: '',
+
+        resetFormOrder() { this.formOrder = { pelangganId: '', jenis: 'Baliho Flexi', panjang: null, lebar: null, satuan: 'm', jumlah: 1, hargaM2: 25000, biayaDesain: 0, biayaFinishing: 0, dp: 0, deadline: '', catatan: '' }; this.orderError = ''; },
+        resetFormPelanggan() { this.formPelanggan = { nama: '', hp: '', alamat: '', instansi: '' }; this.pelangganError = ''; },
+        resetFormDesain() { this.formDesain = { orderNo: '', file: '', gambar: '', catatan: '' }; this.desainError = ''; },
+        resetFormBayar() { this.formBayar = { orderNo: '', jenis: 'DP', metode: 'Tunai', jumlah: null }; this.bayarError = ''; },
+        resetFormStok() { this.formStok = { bahan: '', tipe: 'Stok Masuk', jumlah: null }; this.stokError = ''; },
+        resetFormUser() { this.formUser = { nama: '', email: '', role: 'Admin' }; this.userError = ''; },
+
+        // ---------- data ----------
+        customers: [
+            { id: 1, nama: 'Petrus Kambu', hp: '0812-4801-9921', alamat: 'Mugou, Waghete', instansi: 'Toko Sinar Papua' },
+            { id: 2, nama: 'Fitri Handayani', hp: '0821-9934-1102', alamat: 'Waghete II, Deiyai', instansi: 'CV Papua Digital' },
+            { id: 3, nama: 'Yakob Rumbrar', hp: '0852-4411-8890', alamat: 'Jl. Trans Papua, Deiyai', instansi: 'GKI Immanuel Deiyai' },
+            { id: 4, nama: 'Maria Ayamiseba', hp: '0813-5522-7744', alamat: 'Waghete', instansi: 'Koperasi Cendrawasih' },
+            { id: 5, nama: 'Selvi Mansawan', hp: '0822-6633-4411', alamat: 'Tigi, Deiyai', instansi: 'Dinas Pariwisata' },
+            { id: 6, nama: 'Yustus Wanma', hp: '0812-7788-9900', alamat: 'Mugou', instansi: 'Pribadi' },
+        ],
+
+        orders: [
+            { no: 'ORD-2026-0090', pelanggan: 'Selvi Mansawan', jenis: 'Spanduk Vinyl', ukuran: '1×3 m', jumlah: 2, total: 610000, dp: 610000, sisa: 0, deadline: '30 Jul 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0098', pelanggan: 'Yustus Wanma', jenis: 'Spanduk Vinyl', ukuran: '1×2 m', jumlah: 3, total: 420000, dp: 420000, sisa: 0, deadline: '2 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0110', pelanggan: 'Petrus Kambu', jenis: 'Banner Roll Up', ukuran: '0.85×2 m', jumlah: 1, total: 390000, dp: 390000, sisa: 0, deadline: '5 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0119', pelanggan: 'Selvi Mansawan', jenis: 'Baliho Flexi', ukuran: '3×4 m', jumlah: 1, total: 3200000, dp: 3200000, sisa: 0, deadline: '8 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0125', pelanggan: 'Yakob Rumbrar', jenis: 'Baliho Flexi', ukuran: '1×2 m', jumlah: 2, total: 980000, dp: 980000, sisa: 0, deadline: '10 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0135', pelanggan: 'Petrus Kambu', jenis: 'Stiker', ukuran: '1×1 m', jumlah: 10, total: 275000, dp: 275000, sisa: 0, deadline: '13 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0138', pelanggan: 'Fitri Handayani', jenis: 'Baliho Flexi', ukuran: '2×3 m', jumlah: 1, total: 2100000, dp: 2100000, sisa: 0, deadline: '15 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0140', pelanggan: 'Maria Ayamiseba', jenis: 'Baliho Flexi', ukuran: '1×2 m', jumlah: 3, total: 1650000, dp: 1650000, sisa: 0, deadline: '17 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0142', pelanggan: 'Yustus Wanma', jenis: 'Baliho Flexi', ukuran: '2×3 m', jumlah: 2, total: 850000, dp: 400000, sisa: 450000, deadline: '22 Agu 2026', catatan: 'Logo instansi harus tajam', statusProduksi: 'cetak' },
+            { no: 'ORD-2026-0143', pelanggan: 'Maria Ayamiseba', jenis: 'Baliho Flexi', ukuran: '1×2 m', jumlah: 3, total: 1650000, dp: 1650000, sisa: 0, deadline: '23 Agu 2026', catatan: '', statusProduksi: 'finishing' },
+            { no: 'ORD-2026-0144', pelanggan: 'Petrus Kambu', jenis: 'Stiker', ukuran: '1×1 m', jumlah: 10, total: 275000, dp: 100000, sisa: 175000, deadline: '21 Agu 2026', catatan: 'Laminasi doff', statusProduksi: 'tunggu_setuju' },
+            { no: 'ORD-2026-0145', pelanggan: 'Fitri Handayani', jenis: 'Baliho Flexi', ukuran: '2×3 m', jumlah: 1, total: 2100000, dp: 1000000, sisa: 1100000, deadline: '25 Agu 2026', catatan: 'Revisi warna sesuai brand guide', statusProduksi: 'tunggu_desain' },
+            { no: 'ORD-2026-0146', pelanggan: 'Yakob Rumbrar', jenis: 'Baliho Flexi', ukuran: '1×2 m', jumlah: 2, total: 980000, dp: 980000, sisa: 0, deadline: '24 Agu 2026', catatan: '', statusProduksi: 'siap_cetak' },
+            { no: 'ORD-2026-0147', pelanggan: 'Selvi Mansawan', jenis: 'Baliho Flexi', ukuran: '3×4 m', jumlah: 1, total: 3200000, dp: 1500000, sisa: 1700000, deadline: '27 Agu 2026', catatan: 'Pasang sekaligus di venue', statusProduksi: 'tunggu_setuju' },
+            { no: 'ORD-2026-0148', pelanggan: 'Yustus Wanma', jenis: 'Spanduk Vinyl', ukuran: '1×2 m', jumlah: 4, total: 420000, dp: 420000, sisa: 0, deadline: '20 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+            { no: 'ORD-2026-0149', pelanggan: 'Petrus Kambu', jenis: 'Banner Roll Up', ukuran: '1×2 m', jumlah: 1, total: 390000, dp: 390000, sisa: 0, deadline: '19 Agu 2026', catatan: '', statusProduksi: 'selesai' },
+        ],
+
+        designs: [
+            { orderNo: 'ORD-2026-0144', pelanggan: 'Petrus Kambu', file: 'stiker_final_v2.ai', versi: 2, status: 'menunggu', thumbBg: 'from-teal to-teal-dark', log: [{ event: 'Desain diunggah (v1)', tanggal: '18 Agu 2026' }, { event: 'Desain direvisi & diunggah ulang (v2)', tanggal: '19 Agu 2026' }] },
+            { orderNo: 'ORD-2026-0145', pelanggan: 'Fitri Handayani', file: 'baliho_papuadigital_v3.cdr', versi: 3, status: 'revisi', thumbBg: 'from-primary to-primary-dark', log: [{ event: 'Desain diunggah (v1)', tanggal: '16 Agu 2026' }, { event: 'Pelanggan meminta revisi', tanggal: '17 Agu 2026' }, { event: 'Desain direvisi & diunggah ulang (v3)', tanggal: '19 Agu 2026' }] },
+            { orderNo: 'ORD-2026-0147', pelanggan: 'Selvi Mansawan', file: 'baliho_pariwisata_v1.ai', versi: 1, status: 'menunggu', thumbBg: 'from-violet to-ink', log: [{ event: 'Desain diunggah (v1)', tanggal: '19 Agu 2026' }] },
+            { orderNo: 'ORD-2026-0142', pelanggan: 'Yustus Wanma', file: 'baliho_sinar_v4.cdr', versi: 4, status: 'disetujui', thumbBg: 'from-amber to-primary', log: [{ event: 'Desain diunggah (v1)', tanggal: '14 Agu 2026' }, { event: 'Desain disetujui pelanggan', tanggal: '15 Agu 2026' }] },
+            { orderNo: 'ORD-2026-0146', pelanggan: 'Yakob Rumbrar', file: 'baliho_gki_v2.ai', versi: 2, status: 'disetujui', thumbBg: 'from-green to-teal', log: [{ event: 'Desain diunggah (v1)', tanggal: '16 Agu 2026' }, { event: 'Desain disetujui pelanggan', tanggal: '17 Agu 2026' }] },
+            { orderNo: 'ORD-2026-0143', pelanggan: 'Maria Ayamiseba', file: 'baliho_koperasi_v3.cdr', versi: 3, status: 'disetujui', thumbBg: 'from-ink to-steel', log: [{ event: 'Desain diunggah (v1)', tanggal: '12 Agu 2026' }, { event: 'Desain disetujui pelanggan', tanggal: '13 Agu 2026' }] },
+        ],
+
+        payments: [
+            { no: 'TRX-0421', order: 'ORD-2026-0143', pelanggan: 'Maria Ayamiseba', jenis: 'Pelunasan', metode: 'Transfer Bank', tanggal: '19 Agu 2026', jumlah: 1250000 },
+            { no: 'TRX-0420', order: 'ORD-2026-0146', pelanggan: 'Yakob Rumbrar', jenis: 'DP', metode: 'QRIS', tanggal: '19 Agu 2026', jumlah: 980000 },
+            { no: 'TRX-0419', order: 'ORD-2026-0142', pelanggan: 'Yustus Wanma', jenis: 'DP', metode: 'Tunai', tanggal: '18 Agu 2026', jumlah: 400000 },
+            { no: 'TRX-0418', order: 'ORD-2026-0148', pelanggan: 'Yustus Wanma', jenis: 'Pelunasan', metode: 'Tunai', tanggal: '17 Agu 2026', jumlah: 420000 },
+            { no: 'TRX-0417', order: 'ORD-2026-0149', pelanggan: 'Petrus Kambu', jenis: 'Pelunasan', metode: 'QRIS', tanggal: '16 Agu 2026', jumlah: 390000 },
+            { no: 'TRX-0416', order: 'ORD-2026-0147', pelanggan: 'Selvi Mansawan', jenis: 'DP', metode: 'Transfer Bank', tanggal: '15 Agu 2026', jumlah: 1500000 },
+        ],
+
+        stok: [
+            { nama: 'Flexi China 280gsm', kategori: 'Bahan Cetak', sisa: 340, kapasitas: 500, satuan: 'meter', minStok: 100, masuk: 200, keluar: 160 },
+            { nama: 'Flexi Korea 340gsm', kategori: 'Bahan Cetak', sisa: 85, kapasitas: 400, satuan: 'meter', minStok: 100, masuk: 150, keluar: 265 },
+            { nama: 'Vinyl Sticker Glossy', kategori: 'Bahan Cetak', sisa: 120, kapasitas: 300, satuan: 'meter', minStok: 60, masuk: 100, keluar: 80 },
+            { nama: 'Tinta Solvent Cyan', kategori: 'Tinta', sisa: 6, kapasitas: 20, satuan: 'liter', minStok: 5, masuk: 10, keluar: 14 },
+            { nama: 'Tinta Solvent Magenta', kategori: 'Tinta', sisa: 14, kapasitas: 20, satuan: 'liter', minStok: 5, masuk: 10, keluar: 6 },
+            { nama: 'Mata Ayam (Grommet)', kategori: 'Finishing', sisa: 2400, kapasitas: 5000, satuan: 'pcs', minStok: 500, masuk: 2000, keluar: 1600 },
+        ],
+
+        users: [
+            { nama: 'Admin KugiyaiTobe', email: 'admin@kugiyaitobe.id', role: 'Owner', aktif: true },
+            { nama: 'Rian Saragih', email: 'rian@kugiyaitobe.id', role: 'Admin', aktif: true },
+            { nama: 'Kevin Wonda', email: 'kevin@kugiyaitobe.id', role: 'Designer', aktif: true },
+            { nama: 'Dedi Prasetyo', email: 'dedi@kugiyaitobe.id', role: 'Operator Produksi', aktif: true },
+            { nama: 'Novita Sari', email: 'novita@kugiyaitobe.id', role: 'Kasir', aktif: false },
+        ],
+
+        roleAccess: [
+            { name: 'Owner', bg: 'bg-ink text-white', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 19H19M5 19L4 9L8 13L12 6L16 13L20 9L19 19" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>', perms: ['Akses penuh sistem', 'Laporan keuangan', 'Kelola pengguna'] },
+            { name: 'Admin', bg: 'bg-primary-light text-primary', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>', perms: ['Kelola order & pelanggan', 'Kelola stok', 'Lihat laporan'] },
+            { name: 'Designer', bg: 'bg-violet-light text-violet', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 13L16.5 4.5L2 2L4.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>', perms: ['Upload & revisi desain', 'Ajukan persetujuan'] },
+            { name: 'Operator Produksi', bg: 'bg-teal-light text-teal', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="4" y="9" width="16" height="7" rx="1" stroke="currentColor" stroke-width="1.8"/></svg>', perms: ['Update status produksi', 'Lihat antrian cetak'] },
+            { name: 'Kasir', bg: 'bg-green-light text-green', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>', perms: ['Catat pembayaran', 'Cetak nota'] },
+            { name: 'Pelanggan', bg: 'bg-amber-light text-amber', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20C4.5 16.4 7.85 13.5 12 13.5C16.15 13.5 19.5 16.4 19.5 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>', perms: ['Buat pesanan sendiri', 'Setujui desain', 'Pantau status & bayar'] },
+        ],
+
+        produksiCols: [
+            { key: 'tunggu_desain', label: 'Menunggu Desain', color: '#6B7280' },
+            { key: 'tunggu_setuju', label: 'Menunggu Persetujuan', color: '#F0C51A' },
+            { key: 'siap_cetak', label: 'Siap Cetak', color: '#0F6E6E' },
+            { key: 'cetak', label: 'Sedang Dicetak', color: '#C2141A' },
+            { key: 'finishing', label: 'Finishing', color: '#7C5CFC' },
+            { key: 'selesai', label: 'Selesai', color: '#2A9D6B' },
+        ],
+
+        // ---------- computed: session-aware ----------
+        get myCustomer() { return this.customers.find(c => c.id === this.loginCustomerId) || null; },
+        get myOrders() { return this.myCustomer ? this.orders.filter(o => o.pelanggan === this.myCustomer.nama) : []; },
+        get myDesigns() { return this.myCustomer ? this.designs.filter(d => d.pelanggan === this.myCustomer.nama) : []; },
+        get myPayments() { return this.myCustomer ? this.payments.filter(p => p.pelanggan === this.myCustomer.nama) : []; },
+        get dashboardOrders() { return this.loginRole === 'Pelanggan' ? this.myOrders : this.orders; },
+        get visibleDesigns() { return this.loginRole === 'Pelanggan' ? this.myDesigns : this.designs; },
+        get visiblePayments() { return this.loginRole === 'Pelanggan' ? this.myPayments : this.payments; },
+
+        get filteredCustomers() {
+            const q = this.custSearch.toLowerCase();
+            return this.customers.filter(c => c.nama.toLowerCase().includes(q) || (c.instansi || '').toLowerCase().includes(q));
+        },
+        customerRiwayat(c) { if (!c) return []; return this.orders.filter(o => o.pelanggan === c.nama); },
+
+        get filteredOrders() {
+            let base = this.loginRole === 'Pelanggan' ? this.myOrders : this.orders;
+            if (this.orderFilter !== 'Semua') {
+                const map = { 'Menunggu Desain': 'tunggu_desain', 'Sedang Dicetak': 'cetak', 'Selesai': 'selesai' };
+                base = base.filter(o => o.statusProduksi === map[this.orderFilter]);
+            }
+            if (this.globalSearch) {
+                const q = this.globalSearch.toLowerCase();
+                base = base.filter(o => o.no.toLowerCase().includes(q) || o.pelanggan.toLowerCase().includes(q));
+            }
+            return base;
+        },
+
+        get statusDist() {
+            const src = this.dashboardOrders;
+            return this.produksiCols.map(col => ({ label: col.label, value: src.filter(o => o.statusProduksi === col.key).length, color: col.color }));
+        },
+
+        get totalPendapatan() { return this.payments.reduce((a, b) => a + b.jumlah, 0); },
+        get produkTerlaris() {
+            const counts = this.orderCountsByJenis();
+            let top = '—', max = 0;
+            Object.entries(counts).forEach(([k, v]) => { if (v > max) { max = v; top = k; } });
+            return top;
+        },
+        orderCountsByJenis() {
+            const counts = {};
+            this.orders.forEach(o => { counts[o.jenis] = (counts[o.jenis] || 0) + 1; });
+            return counts;
+        },
+
+        get kpis() {
+            if (this.loginRole === 'Pelanggan') {
+                const o = this.myOrders;
+                const proses = o.filter(x => ['tunggu_setuju', 'siap_cetak', 'cetak', 'finishing'].includes(x.statusProduksi)).length;
+                return [
+                    { label: 'Total Pesanan Saya', value: String(o.length), trend: 0, iconBg: 'bg-primary-light text-primary', icon: KPI_ICONS.order },
+                    { label: 'Menunggu Desain', value: String(o.filter(x => x.statusProduksi === 'tunggu_desain').length), trend: 0, iconBg: 'bg-steel/10 text-steel', icon: KPI_ICONS.wait },
+                    { label: 'Sedang Diproses', value: String(proses), trend: 0, iconBg: 'bg-violet-light text-violet', icon: KPI_ICONS.print },
+                    { label: 'Selesai', value: String(o.filter(x => x.statusProduksi === 'selesai').length), trend: 0, iconBg: 'bg-green-light text-green', icon: KPI_ICONS.done },
+                    { label: 'Tagihan Belum Lunas', value: rupiah(o.reduce((a, b) => a + b.sisa, 0)), trend: 0, iconBg: 'bg-crimson-light text-crimson', icon: KPI_ICONS.piutang },
+                ];
+            }
+            const o = this.orders;
+            return [
+                { label: 'Total Pesanan', value: String(o.length), trend: 8, iconBg: 'bg-primary-light text-primary', icon: KPI_ICONS.order },
+                { label: 'Menunggu Desain', value: String(o.filter(x => x.statusProduksi === 'tunggu_desain').length), trend: 0, iconBg: 'bg-steel/10 text-steel', icon: KPI_ICONS.wait },
+                { label: 'Sedang Dicetak', value: String(o.filter(x => x.statusProduksi === 'cetak').length), trend: 0, iconBg: 'bg-violet-light text-violet', icon: KPI_ICONS.print },
+                { label: 'Selesai', value: String(o.filter(x => x.statusProduksi === 'selesai').length), trend: 15, iconBg: 'bg-green-light text-green', icon: KPI_ICONS.done },
+                { label: 'Pendapatan Total', value: rupiah(this.totalPendapatan), trend: 9, iconBg: 'bg-ink text-white', icon: KPI_ICONS.money },
+                { label: 'Piutang Pelanggan', value: rupiah(o.reduce((a, b) => a + b.sisa, 0)), trend: -4, iconBg: 'bg-crimson-light text-crimson', icon: KPI_ICONS.piutang },
+                { label: 'Rata-rata Nilai Order', value: rupiah(o.length ? o.reduce((a, b) => a + b.total, 0) / o.length : 0), trend: 2, iconBg: 'bg-steel/10 text-steel', icon: KPI_ICONS.avg },
+            ];
+        },
+
+        get notifications() {
+            const list = [];
+            const isCust = this.loginRole === 'Pelanggan';
+            const myName = isCust && this.myCustomer ? this.myCustomer.nama : null;
+            this.orders.filter(o => o.sisa > 0 && (!isCust || o.pelanggan === myName)).forEach(o => {
+                list.push({ icon: '💰', text: (isCust ? 'Tagihan Anda ' : 'Piutang ' + o.pelanggan + ' ') + '— ' + rupiah(o.sisa) + ' (' + o.no + ')' });
+            });
+            this.designs.filter(d => d.status === 'menunggu' && (!isCust || d.pelanggan === myName)).forEach(d => {
+                list.push({ icon: '🎨', text: 'Desain ' + d.orderNo + ' menunggu persetujuan' });
+            });
+            if (!isCust) {
+                this.stok.filter(s => s.sisa <= s.minStok).forEach(s => {
+                    list.push({ icon: '📦', text: 'Stok ' + s.nama + ' menipis (' + s.sisa + ' ' + s.satuan + ')' });
+                });
+            }
+            return list;
+        },
+
+        // ---------- helpers ----------
+        rupiah(n) { return rupiah(n); },
+        toast(msg) {
+            const id = Date.now() + Math.random();
+            this.toasts.push({ id, msg });
+            setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 3200);
+        },
+
+        closeModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (document.activeElement && typeof document.activeElement.blur === 'function' && el.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            if (window.bootstrap) {
+                const modal = bootstrap.Modal.getInstance(el) || bootstrap.Modal.getOrCreateInstance(el);
+                if (modal) modal.hide();
+            }
+        },
+
+        // ---------- session handoff from landing.html ----------
+        // landing.html's auth modal (Masuk / Daftar) can't create real accounts —
+        // it just hands the entered profile off to us via sessionStorage before
+        // redirecting to index.html. We pick it up once here on load and turn it
+        // into an actual session (new pelanggan record, or a matched login).
+        applyAuthPrefill() {
+            let raw = null;
+            try { raw = sessionStorage.getItem('kugiyaiAuthPrefill'); } catch (e) { /* storage unavailable */ }
+            if (!raw) return;
+            try { sessionStorage.removeItem('kugiyaiAuthPrefill'); } catch (e) { /* no-op */ }
+
+            let data;
+            try { data = JSON.parse(raw); } catch (e) { return; }
+            if (!data || !data.view) return;
+
+            if (data.view === 'register') {
+                const nama = (data.nama || '').trim();
+                if (!nama) return;
+                const id = (this.customers.length ? Math.max(...this.customers.map(c => c.id)) : 0) + 1;
+                this.customers.push({ id, nama, hp: (data.hp || '').trim(), alamat: '', instansi: (data.instansi || '').trim() });
+                this.loginRole = 'Pelanggan';
+                this.loginCustomerId = id;
+                this.loginUserName = nama;
+                setTimeout(() => this.toast('Selamat datang, ' + nama + '! Akun pelanggan Anda berhasil dibuat.'), 350);
+                return;
+            }
+
+            if (data.view === 'login') {
+                const uname = (data.username || '').trim();
+                const q = uname.toLowerCase();
+                if (!q) return;
+
+                // 1) try matching a staff account (Owner/Admin/Designer/Operator/Kasir)
+                const staff = this.users.find(u => u.nama.toLowerCase() === q || u.email.toLowerCase() === q);
+                if (staff) {
+                    if (!staff.aktif) {
+                        setTimeout(() => this.toast('Akun "' + staff.nama + '" nonaktif. Hubungi Owner untuk mengaktifkan kembali.'), 350);
+                        return;
+                    }
+                    this.loginRole = staff.role;
+                    this.loginUserName = staff.nama;
+                    setTimeout(() => this.toast('Selamat datang kembali, ' + staff.nama + '.'), 350);
+                    return;
+                }
+
+                // 2) try matching an existing pelanggan by name or phone number
+                const digits = q.replace(/\D/g, '');
+                const cust = this.customers.find(c => c.nama.toLowerCase() === q || (digits && c.hp.replace(/\D/g, '') === digits));
+                if (cust) {
+                    this.loginRole = 'Pelanggan';
+                    this.loginCustomerId = cust.id;
+                    this.loginUserName = cust.nama;
+                    setTimeout(() => this.toast('Selamat datang kembali, ' + cust.nama + '.'), 350);
+                    return;
+                }
+
+                // 3) no match — this is a front-end demo without a real auth backend,
+                // so stay on the default session and say so honestly instead of
+                // silently pretending the login succeeded.
+                setTimeout(() => this.toast('Akun "' + data.username + '" tidak ditemukan. Menampilkan sesi demo (Owner).'), 350);
+            }
+        },
+        logout() {
+            try { sessionStorage.removeItem('kugiyaiAuthPrefill'); } catch (e) { /* no-op */ }
+            window.location.href = 'landing.html';
+        },
+        todayStr() {
+            return new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        },
+        formatTanggal(isoDate) {
+            if (!isoDate) return '';
+            const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const d = new Date(isoDate + 'T00:00:00');
+            if (isNaN(d.getTime())) return isoDate;
+            return String(d.getDate()).padStart(2, '0') + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+        },
+
+        statusBadge(key) {
+            const map = {
+                tunggu_desain: { label: 'Menunggu Desain', cls: 'bg-steel/10 text-steel' },
+                tunggu_setuju: { label: 'Menunggu Persetujuan', cls: 'bg-amber-light text-amber' },
+                siap_cetak: { label: 'Siap Cetak', cls: 'bg-teal-light text-teal' },
+                cetak: { label: 'Sedang Dicetak', cls: 'bg-primary-light text-primary' },
+                finishing: { label: 'Finishing', cls: 'bg-violet-light text-violet' },
+                selesai: { label: 'Selesai', cls: 'bg-green-light text-green' },
+            };
+            return map[key] || { label: key, cls: 'bg-steel/10 text-steel' };
+        },
+        desainStatusBadge(key) {
+            const map = {
+                menunggu: { label: 'Menunggu Review', cls: 'bg-amber text-white' },
+                revisi: { label: 'Perlu Revisi', cls: 'bg-crimson text-white' },
+                disetujui: { label: 'Disetujui', cls: 'bg-green text-white' },
+            };
+            return map[key] || { label: key, cls: 'bg-steel text-white' };
+        },
+
+        // ---------- order form calc ----------
+        konversiKeMeter(nilai, satuan) {
+            const map = { cm: 0.01, m: 1, inch: 0.0254, kaki: 0.3048 };
+            return (nilai || 0) * (map[satuan] || 1);
+        },
+        luasM2() {
+            const p = this.konversiKeMeter(this.formOrder.panjang, this.formOrder.satuan);
+            const l = this.konversiKeMeter(this.formOrder.lebar, this.formOrder.satuan);
+            return p * l;
+        },
+        luasM2Text() { return this.luasM2().toFixed(2); },
+        hitungTotalOrder() {
+            const luas = this.luasM2();
+            const jumlah = this.formOrder.jumlah || 0;
+            const harga = this.formOrder.hargaM2 || 0;
+            return (luas * jumlah * harga) + (this.formOrder.biayaDesain || 0) + (this.formOrder.biayaFinishing || 0);
+        },
+
+        nextOrderNo() {
+            const nums = this.orders.map(o => parseInt(o.no.split('-').pop(), 10)).filter(n => !isNaN(n));
+            const max = nums.length ? Math.max(...nums) : 0;
+            return 'ORD-2026-' + String(max + 1).padStart(4, '0');
+        },
+        nextTrxNo() {
+            const nums = this.payments.map(p => parseInt(p.no.split('-').pop(), 10)).filter(n => !isNaN(n));
+            const max = nums.length ? Math.max(...nums) : 0;
+            return 'TRX-' + String(max + 1).padStart(4, '0');
+        },
+
+        simpanOrder() {
+            this.orderError = '';
+            let pelangganNama = '';
+            if (this.loginRole === 'Pelanggan') {
+                if (!this.myCustomer) { this.orderError = 'Akun pelanggan tidak ditemukan.'; return; }
+                pelangganNama = this.myCustomer.nama;
+            } else {
+                const cust = this.customers.find(c => c.id === this.formOrder.pelangganId);
+                if (!cust) { this.orderError = 'Pilih pelanggan terlebih dahulu.'; return; }
+                pelangganNama = cust.nama;
+            }
+            if (!this.formOrder.jenis) { this.orderError = 'Pilih jenis cetakan.'; return; }
+            if (!this.formOrder.panjang || !this.formOrder.lebar) { this.orderError = 'Isi ukuran panjang dan lebar.'; return; }
+            if (!this.formOrder.jumlah || this.formOrder.jumlah < 1) { this.orderError = 'Jumlah minimal 1.'; return; }
+            if (!this.formOrder.hargaM2 || this.formOrder.hargaM2 <= 0) { this.orderError = 'Isi harga per m².'; return; }
+            if (!this.formOrder.deadline) { this.orderError = 'Tentukan tanggal deadline.'; return; }
+
+            const total = Math.round(this.hitungTotalOrder());
+            const dp = Math.min(Math.round(this.formOrder.dp || 0), total);
+            const sisa = Math.max(total - dp, 0);
+            const ukuranLabel = this.formOrder.panjang + '×' + this.formOrder.lebar + ' ' + this.formOrder.satuan;
+
+            this.orders.unshift({
+                no: this.nextOrderNo(),
+                pelanggan: pelangganNama,
+                jenis: this.formOrder.jenis,
+                ukuran: ukuranLabel,
+                jumlah: this.formOrder.jumlah,
+                total, dp, sisa,
+                deadline: this.formatTanggal(this.formOrder.deadline),
+                catatan: this.formOrder.catatan,
+                statusProduksi: 'tunggu_desain',
+            });
+
+            this.resetFormOrder();
+            this.closeModal('modalOrderBaru');
+            this.toast('Order baru berhasil dibuat.');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        simpanPelanggan() {
+            this.pelangganError = '';
+            if (!this.formPelanggan.nama || !this.formPelanggan.hp) { this.pelangganError = 'Nama dan nomor HP wajib diisi.'; return; }
+            const id = (this.customers.length ? Math.max(...this.customers.map(c => c.id)) : 0) + 1;
+            this.customers.push({ id, nama: this.formPelanggan.nama, hp: this.formPelanggan.hp, alamat: this.formPelanggan.alamat, instansi: this.formPelanggan.instansi });
+            this.resetFormPelanggan();
+            this.closeModal('modalPelanggan');
+            this.toast('Pelanggan baru ditambahkan.');
+        },
+
+        handleUploadGambarDesain(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            this.formDesain.file = file.name;
+            if (file.type.startsWith('image/')) {
+                if (file.size > 5 * 1024 * 1024) {
+                    this.toast('⚠️ Ukuran pratinjau gambar maksimal 5MB.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.formDesain.gambar = e.target.result;
+                    this.toast('📷 Gambar desain berhasil dimuat.');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                this.toast('📄 File ' + file.name + ' terpilih.');
+            }
+        },
+
+        simpanDesain() {
+            this.desainError = '';
+            if (!this.formDesain.orderNo) { this.desainError = 'Pilih nomor order.'; return; }
+            if (!this.formDesain.file && !this.formDesain.gambar) { this.desainError = 'Pilih file desain atau unggah gambar pratinjau.'; return; }
+            const order = this.orders.find(o => o.no === this.formDesain.orderNo);
+            if (!order) { this.desainError = 'Order tidak ditemukan.'; return; }
+
+            const palette = ['from-teal to-teal-dark', 'from-primary to-primary-dark', 'from-violet to-ink', 'from-amber to-primary', 'from-green to-teal', 'from-ink to-steel'];
+            const existing = this.designs.find(d => d.orderNo === this.formDesain.orderNo);
+            const gambarVal = this.formDesain.gambar || (existing ? existing.gambar : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80');
+
+            if (existing) {
+                existing.versi += 1;
+                existing.file = this.formDesain.file || existing.file;
+                existing.gambar = gambarVal;
+                existing.catatan = this.formDesain.catatan || existing.catatan;
+                existing.status = 'menunggu';
+                existing.log = existing.log || [];
+                existing.log.push({ event: 'Desain direvisi & diunggah ulang (v' + existing.versi + ')', tanggal: this.todayStr() });
+            } else {
+                this.designs.unshift({
+                    orderNo: order.no,
+                    pelanggan: order.pelanggan,
+                    file: this.formDesain.file || (order.no + '_final_v1.ai'),
+                    gambar: gambarVal,
+                    catatan: this.formDesain.catatan || '',
+                    versi: 1,
+                    status: 'menunggu',
+                    desainer: this.loginUserName || 'Kevin Wonda',
+                    thumbBg: palette[this.designs.length % palette.length],
+                    log: [{ event: 'Desain diunggah (v1)', tanggal: this.todayStr() }]
+                });
+            }
+
+            order.statusProduksi = 'tunggu_setuju';
+            this.resetFormDesain();
+            this.closeModal('modalUploadDesain');
+            this.toast('✅ Desain berhasil diunggah.');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        setujuiDesain(d) {
+            d.status = 'disetujui';
+            d.log = d.log || [];
+            d.log.push({ event: 'Desain disetujui pelanggan', tanggal: this.todayStr() });
+            const order = this.orders.find(o => o.no === d.orderNo);
+            if (order && (order.statusProduksi === 'tunggu_setuju' || order.statusProduksi === 'tunggu_desain')) {
+                order.statusProduksi = 'siap_cetak';
+            }
+            this.toast('✅ Desain disetujui & pesanan siap dicetak.');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        revisiInputOpen: false,
+        revisiText: '',
+        revisiError: '',
+
+        openRevisiInput(d) {
+            this.revisiInputOpen = true;
+            this.revisiText = d.catatan || '';
+            this.revisiError = '';
+        },
+
+        cancelRevisiInput() {
+            this.revisiInputOpen = false;
+            this.revisiText = '';
+            this.revisiError = '';
+        },
+
+        submitRevisi(d) {
+            this.revisiError = '';
+            if (!this.revisiText.trim()) {
+                this.revisiError = 'Mohon tuliskan rincian bagian atau elemen yang perlu direvisi.';
+                return;
+            }
+            d.status = 'revisi';
+            d.catatan = this.revisiText.trim();
+            d.log = d.log || [];
+            d.log.push({ event: 'Permintaan revisi: ' + d.catatan, tanggal: this.todayStr() });
+            const order = this.orders.find(o => o.no === d.orderNo);
+            if (order) { order.statusProduksi = 'tunggu_desain'; }
+            this.revisiInputOpen = false;
+            this.toast('🔄 Permintaan revisi berhasil dikirim ke desainer.');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        mintaRevisiDesain(d) {
+            this.openRevisiInput(d);
+        },
+
+        unduhGambarDesain(d) {
+            if (!d) return;
+            if (d.gambar) {
+                const a = document.createElement('a');
+                a.href = d.gambar;
+                a.download = (d.file || d.orderNo + '_desain') + '.jpg';
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                this.toast('📥 Gambar pratinjau desain dibuka / diunduh.');
+            } else {
+                this.toast('ℹ️ File master: ' + (d.file || 'Format Vektor') + ' tersimpan di server lokal.');
+            }
+        },
+
+        cetakApprovalDesain(d) {
+            if (!d) return;
+            const order = this.orders.find(o => o.no === d.orderNo) || { jenis: 'Cetak Digital', ukuran: 'Standar', jumlah: 1 };
+            const win = window.open('', '_blank');
+            if (!win) { this.toast('Izinkan pop-up untuk mencetak Lembar Approval Desain.'); return; }
+            const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            win.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Lembar Persetujuan Desain - ${d.orderNo}</title>
+                    <meta charset="utf-8">
+                    <style>
+                        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+                        body { padding:24px; color:#0A0D14; background:#FFF; font-size:12px; line-height:1.4; }
+                        .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #C2141A; padding-bottom:12px; margin-bottom:16px; }
+                        .logo h1 { font-size:18px; font-weight:800; color:#C2141A; letter-spacing:-0.5px; }
+                        .logo p { font-size:10px; color:#5A6478; }
+                        .title-box { text-align:right; }
+                        .title-box h2 { font-size:14px; font-weight:700; color:#0A0D14; text-transform:uppercase; }
+                        .title-box span { font-size:11px; color:#5A6478; font-family:monospace; }
+                        .meta-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
+                        .meta-card { background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 10px; rounded:8px; border-radius:6px; }
+                        .meta-card .lbl { font-size:9px; color:#64748B; text-transform:uppercase; font-weight:600; }
+                        .meta-card .val { font-size:11px; font-weight:700; color:#0F172A; margin-top:2px; }
+                        .preview-box { border:1px solid #CBD5E1; border-radius:8px; padding:8px; text-align:center; margin-bottom:16px; background:#0F172A; }
+                        .preview-img { max-width:100%; max-height:360px; object-fit:contain; border-radius:4px; display:block; margin:0 auto; }
+                        .specs-table { width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px; }
+                        .specs-table th, .specs-table td { border:1px solid #E2E8F0; padding:6px 10px; text-align:left; }
+                        .specs-table th { background:#F1F5F9; color:#475569; font-weight:600; }
+                        .notes-box { background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:10px; margin-bottom:16px; font-size:11px; color:#92400E; }
+                        .sig-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; text-align:center; margin-top:24px; }
+                        .sig-col { border-top:1px solid #94A3B8; padding-top:6px; font-size:11px; }
+                        .sig-space { height:55px; }
+                        .badge-ok { display:inline-block; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700; background:#DCFCE7; color:#15803D; }
+                        .footer { margin-top:20px; padding-top:8px; border-top:1px dashed #CBD5E1; font-size:9px; color:#64748B; display:flex; justify-content:space-between; }
+                        @media print { body { padding:10mm; } .no-print { display:none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="logo">
+                            <h1>CETAK.OS · KUGIYAITOBE</h1>
+                            <p>Digital-Printing & Reklame · Mugou, Waghete, Deiyai - Papua Tengah</p>
+                        </div>
+                        <div class="title-box">
+                            <h2>LEMBAR PERSETUJUAN DESAIN (PROOF SHEET)</h2>
+                            <span>${d.orderNo} · Versi ${d.versi}</span>
+                        </div>
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-card"><div class="lbl">Nama Pelanggan</div><div class="val">${d.pelanggan}</div></div>
+                        <div class="meta-card"><div class="lbl">Jenis & Ukuran</div><div class="val">${order.jenis} (${order.ukuran})</div></div>
+                        <div class="meta-card"><div class="lbl">File Master</div><div class="val font-mono">${d.file}</div></div>
+                        <div class="meta-card"><div class="lbl">Status Proof</div><div class="val"><span class="badge-ok">${d.status.toUpperCase()}</span></div></div>
+                    </div>
+
+                    <div class="preview-box">
+                        ${d.gambar ? `<img src="${d.gambar}" class="preview-img" alt="Artwork">` : `<div style="padding:40px;color:#94A3B8;">Pratinjau Vektor Master: ${d.file}</div>`}
+                    </div>
+
+                    <table class="specs-table">
+                        <thead>
+                            <tr>
+                                <th>Spesifikasi Teknis</th>
+                                <th>Nilai / Standar Cetak</th>
+                                <th>Verifikasi Desainer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Ruang Warna (Color Space)</td><td>CMYK (FOGRA39 / US Web Coated)</td><td>✓ Terkalibrasi</td></tr>
+                            <tr><td>Resolusi Minimum</td><td>300 DPI pada Skala Nyata (1:1)</td><td>✓ Siap Cetak</td></tr>
+                            <tr><td>Batas Aman / Bleed Margin</td><td>30mm Margin Keliling / Ring Mata Ayam</td><td>✓ Sesuai SOP</td></tr>
+                            <tr><td>Desainer Penanggung Jawab</td><td>${d.desainer || 'Kevin Wonda'}</td><td>✓ Disetujui Tim Kreatif</td></tr>
+                        </tbody>
+                    </table>
+
+                    ${d.catatan ? `<div class="notes-box"><b>Catatan Teknis / Permintaan Khusus:</b><br>${d.catatan}</div>` : ''}
+
+                    <div class="sig-grid">
+                        <div class="sig-col">
+                            <div class="sig-space"></div>
+                            <b>( ${d.desainer || 'Kevin Wonda'} )</b>
+                            <div>Desainer Grafis</div>
+                        </div>
+                        <div class="sig-col">
+                            <div class="sig-space"></div>
+                            <b>( Operator Produksi )</b>
+                            <div>Bagian Percetakan</div>
+                        </div>
+                        <div class="sig-col">
+                            <div class="sig-space"></div>
+                            <b>( ${d.pelanggan} )</b>
+                            <div>Pelanggan / Pemesan</div>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        <span>Dicetak otomatis dari CETAK.OS · ${nowStr}</span>
+                        <span>Dokumen bukti persetujuan resmi desain cetak</span>
+                    </div>
+
+                    <div class="no-print" style="margin-top:20px;text-align:center;">
+                        <button onclick="window.print()" style="padding:8px 20px;background:#C2141A;color:#FFF;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">Cetak Lembar Proof / Simpan PDF</button>
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        },
+
+        simpanBayar() {
+            this.bayarError = '';
+            const order = this.orders.find(o => o.no === this.formBayar.orderNo);
+            if (!order) { this.bayarError = 'Pilih order yang valid.'; return; }
+            const jumlah = Math.round(this.formBayar.jumlah || 0);
+            if (jumlah <= 0) { this.bayarError = 'Jumlah pembayaran harus lebih dari 0.'; return; }
+            if (jumlah > order.sisa) { this.bayarError = 'Jumlah melebihi sisa tagihan (' + rupiah(order.sisa) + ').'; return; }
+
+            const trx = { no: this.nextTrxNo(), order: order.no, pelanggan: order.pelanggan, jenis: this.formBayar.jenis, metode: this.formBayar.metode, tanggal: this.todayStr(), jumlah };
+            this.payments.unshift(trx);
+            order.dp += jumlah;
+            order.sisa = Math.max(order.total - order.dp, 0);
+
+            this.resetFormBayar();
+            this.closeModal('modalBayar');
+            this.toast('Pembayaran tercatat.');
+            this.$nextTick(() => this.renderCharts());
+            this.cetakNota(order, trx);
+        },
+
+        simpanStok() {
+            this.stokError = '';
+            const item = this.stok.find(s => s.nama === this.formStok.bahan);
+            if (!item) { this.stokError = 'Pilih bahan.'; return; }
+            const jml = Math.round(this.formStok.jumlah || 0);
+            if (jml <= 0) { this.stokError = 'Jumlah harus lebih dari 0.'; return; }
+            if (this.formStok.tipe === 'Stok Masuk') {
+                item.sisa += jml; item.masuk += jml;
+                if (item.sisa > item.kapasitas) item.kapasitas = item.sisa;
+            } else {
+                if (jml > item.sisa) { this.stokError = 'Stok tidak mencukupi untuk dikeluarkan.'; return; }
+                item.sisa -= jml; item.keluar += jml;
+            }
+            this.resetFormStok();
+            this.closeModal('modalStok');
+            this.toast('Mutasi stok tercatat.');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        simpanUser() {
+            this.userError = '';
+            if (!this.formUser.nama || !this.formUser.email) { this.userError = 'Nama dan email wajib diisi.'; return; }
+            if (this.users.some(u => u.email.toLowerCase() === this.formUser.email.toLowerCase())) { this.userError = 'Email sudah terdaftar.'; return; }
+            this.users.push({ nama: this.formUser.nama, email: this.formUser.email, role: this.formUser.role, aktif: true });
+            this.resetFormUser();
+            this.closeModal('modalUser');
+            this.toast('Pengguna baru ditambahkan.');
+        },
+
+        // ---------- Profile Management ----------
+        handleAvatarUpload(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                this.toast('Pilih file gambar yang valid (JPG, PNG, WebP).');
+                return;
+            }
+            if (file.size > 3 * 1024 * 1024) {
+                this.toast('Ukuran foto profil maksimal 3MB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                this.formProfile.avatar = evt.target.result;
+                this.toast('Foto profil berhasil diunggah.');
+            };
+            reader.readAsDataURL(file);
+        },
+
+        hapusAvatar() {
+            this.formProfile.avatar = '';
+            this.toast('Foto profil dihapus (menggunakan inisial nama).');
+        },
+
+        openModalProfil() {
+            this.profilError = '';
+            let email = '';
+            let hp = '';
+            let instansi = '';
+            if (this.loginRole === 'Pelanggan') {
+                const c = this.myCustomer;
+                if (c) {
+                    email = (c.nama.toLowerCase().replace(/\s+/g, '') + '@gmail.com');
+                    hp = c.hp || '';
+                    instansi = c.instansi || '';
+                }
+            } else {
+                const u = this.users.find(x => x.nama === this.loginUserName) || this.users[0];
+                if (u) {
+                    email = u.email;
+                }
+                hp = '0812-4090-2277';
+                instansi = 'KugiyaiTobe Digital-Printing';
+            }
+            this.formProfile = {
+                nama: this.loginUserName,
+                email: email,
+                hp: hp,
+                instansi: instansi,
+                avatar: this.loginUserAvatar || '',
+                passwordLama: '',
+                passwordBaru: '',
+                konfirmasiPassword: '',
+                role: this.loginRole
+            };
+            if (window.bootstrap) {
+                const el = document.getElementById('modalProfil');
+                if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        },
+
+        simpanProfil() {
+            this.profilError = '';
+            if (!this.formProfile.nama.trim()) {
+                this.profilError = 'Nama wajib diisi.';
+                return;
+            }
+            if (!this.formProfile.email.trim()) {
+                this.profilError = 'Email wajib diisi.';
+                return;
+            }
+            if (this.formProfile.passwordBaru) {
+                if (this.formProfile.passwordBaru.length < 6) {
+                    this.profilError = 'Password baru minimal 6 karakter.';
+                    return;
+                }
+                if (this.formProfile.passwordBaru !== this.formProfile.konfirmasiPassword) {
+                    this.profilError = 'Konfirmasi password baru tidak cocok.';
+                    return;
+                }
+            }
+
+            const oldName = this.loginUserName;
+            this.loginUserName = this.formProfile.nama.trim();
+            this.loginUserAvatar = this.formProfile.avatar || '';
+
+            try {
+                if (this.loginUserAvatar) {
+                    localStorage.setItem('kugiyaiUserAvatar', this.loginUserAvatar);
+                } else {
+                    localStorage.removeItem('kugiyaiUserAvatar');
+                }
+            } catch (e) { /* storage error ignored */ }
+
+            if (this.loginRole === 'Pelanggan' && this.myCustomer) {
+                this.myCustomer.nama = this.loginUserName;
+                this.myCustomer.hp = this.formProfile.hp;
+                this.myCustomer.instansi = this.formProfile.instansi;
+                this.orders.forEach(o => { if (o.pelanggan === oldName) o.pelanggan = this.loginUserName; });
+                this.designs.forEach(d => { if (d.pelanggan === oldName) d.pelanggan = this.loginUserName; });
+                this.payments.forEach(p => { if (p.pelanggan === oldName) p.pelanggan = this.loginUserName; });
+            } else {
+                const u = this.users.find(x => x.nama === oldName || x.role === this.loginRole);
+                if (u) {
+                    u.nama = this.loginUserName;
+                    u.email = this.formProfile.email.trim();
+                }
+            }
+
+            this.toast('✅ Profil berhasil diperbarui.');
+            this.closeModal('modalProfil');
+        },
+
+        switchRole(roleName, custId = 1) {
+            this.loginRole = roleName;
+            if (roleName === 'Pelanggan') {
+                this.loginCustomerId = custId;
+                const c = this.customers.find(x => x.id === custId) || this.customers[0];
+                this.loginUserName = c.nama;
+            } else {
+                const u = this.users.find(x => x.role === roleName) || this.users[0];
+                this.loginUserName = u ? u.nama : 'Admin KugiyaiTobe';
+            }
+            this.page = 'dashboard';
+            this.closeModal('modalProfil');
+            this.toast('🔄 Beralih peran ke: ' + roleName + ' (' + this.loginUserName + ')');
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        cetakNota(order, trx) {
+            if (!order) return;
+            const win = window.open('', '_blank', 'width=440,height=660');
+            if (!win) { this.toast('Izinkan pop-up untuk mencetak nota.'); return; }
+            const isiTrx = trx ? (
+                '<tr><td>No Transaksi</td><td>' + trx.no + '</td></tr>' +
+                '<tr><td>Jenis Pembayaran</td><td>' + trx.jenis + '</td></tr>' +
+                '<tr><td>Metode</td><td>' + trx.metode + '</td></tr>' +
+                '<tr><td>Tanggal</td><td>' + trx.tanggal + '</td></tr>' +
+                '<tr><td>Jumlah Dibayar</td><td>' + rupiah(trx.jumlah) + '</td></tr>'
+            ) : '';
+            win.document.write(
+                '<!DOCTYPE html><html><head><title>Nota ' + order.no + '</title><style>' +
+                'body{font-family:Arial,sans-serif;padding:24px;color:#14161C;}' +
+                'h2{margin:0 0 2px;color:#0B1B3D;} h2 span{color:#C2141A;} .sub{color:#6B7280;font-size:12px;margin-bottom:16px;}' +
+                'table{width:100%;border-collapse:collapse;font-size:13px;}' +
+                'td{padding:6px 0;border-bottom:1px solid #eee;}' +
+                'td:last-child{text-align:right;font-weight:600;}' +
+                '.total{font-size:15px;font-weight:700;margin-top:14px;color:#0B1B3D;}' +
+                '</style></head><body>' +
+                '<h2>KUGIYAI<span>.TOBE</span> DIGITAL-PRINTING</h2>' +
+                '<div class="sub">Mugou - Waghete - Deiyai, Papua Tengah &middot; Nota Resmi</div>' +
+                '<table>' +
+                '<tr><td>No Order</td><td>' + order.no + '</td></tr>' +
+                '<tr><td>Pelanggan</td><td>' + order.pelanggan + '</td></tr>' +
+                '<tr><td>Jenis / Ukuran</td><td>' + order.jenis + ' &middot; ' + order.ukuran + '</td></tr>' +
+                '<tr><td>Jumlah</td><td>' + order.jumlah + '</td></tr>' +
+                '<tr><td>Total</td><td>' + rupiah(order.total) + '</td></tr>' +
+                '<tr><td>Sudah Dibayar</td><td>' + rupiah(order.dp) + '</td></tr>' +
+                '<tr><td>Sisa Tagihan</td><td>' + rupiah(order.sisa) + '</td></tr>' +
+                isiTrx +
+                '</table>' +
+                '<div class="total">Status: ' + (order.sisa <= 0 ? 'LUNAS' : 'BELUM LUNAS') + '</div>' +
+                '<script>window.onload=function(){window.print();};<\/script>' +
+                '</body></html>'
+            );
+            win.document.close();
+        },
+
+        cetakSPK(order) {
+            if (!order) return;
+            const win = window.open('', '_blank');
+            if (!win) { this.toast('Izinkan pop-up untuk mencetak SPK.'); return; }
+            const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>SPK Produksi — ${order.no}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { font-family: 'Segoe UI', Arial, sans-serif; color: #14161C; padding: 20px; font-size: 13px; }
+                        .kop { border-bottom: 2.5px solid #C2141A; padding-bottom: 10px; margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center; }
+                        .kop h2 { margin: 0; color: #0B1B3D; font-size: 20px; }
+                        .kop h2 span { color: #C2141A; }
+                        .kop p { margin: 2px 0 0; color: #666; font-size: 11px; }
+                        .title-spk { text-align: center; margin: 15px 0; }
+                        .title-spk h3 { margin: 0; font-size: 16px; background: #0B1B3D; color: #fff; display: inline-block; padding: 5px 18px; border-radius: 4px; }
+                        .box { border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px; margin-bottom: 15px; background: #FAFAFA; }
+                        .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #E5E7EB; }
+                        .row:last-child { border-bottom: none; }
+                        .label { color: #666; font-weight: 500; }
+                        .val { font-weight: 600; text-align: right; }
+                        .instruksi { background: #FFF8E7; border: 1px solid #F59E0B; padding: 12px; border-radius: 8px; margin: 15px 0; }
+                        .checklist { margin: 15px 0; }
+                        .check-item { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+                        .sq { width: 14px; height: 14px; border: 1.5px solid #333; display: inline-block; border-radius: 2px; }
+                        .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
+                        .sig { width: 180px; text-align: center; }
+                        .sig-line { margin-top: 50px; border-bottom: 1px solid #333; }
+                        .btn-bar { margin-bottom: 15px; text-align: right; }
+                        @media print { .btn-bar { display: none; } body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="btn-bar">
+                        <button onclick="window.print()" style="background:#C2141A;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:bold;">🖨️ Cetak / Simpan SPK (PDF)</button>
+                    </div>
+                    <div class="kop">
+                        <div>
+                            <h2>KUGIYAI<span>.TOBE</span> DIGITAL-PRINTING</h2>
+                            <p>Mugou — Waghete — Deiyai, Papua Tengah &bull; SPK Operator & Produksi</p>
+                        </div>
+                        <div style="text-align:right;font-size:11px;color:#666;">
+                            <div>Form QC-PRD-01</div>
+                            <div>Dicetak: ${nowStr}</div>
+                        </div>
+                    </div>
+                    <div class="title-spk">
+                        <h3>SURAT PERINTAH KERJA (SPK)</h3>
+                        <div style="font-size:12px;color:#666;margin-top:4px;">No: <strong>${order.no}</strong></div>
+                    </div>
+                    <div class="box">
+                        <div class="row"><span class="label">Nama Pemesan / Klien</span><span class="val">${order.pelanggan}</span></div>
+                        <div class="row"><span class="label">Jenis Cetakan</span><span class="val">${order.jenis}</span></div>
+                        <div class="row"><span class="label">Ukuran Dimensi</span><span class="val" style="font-size:15px;color:#C2141A;">${order.ukuran}</span></div>
+                        <div class="row"><span class="label">Jumlah Pesanan</span><span class="val">${order.jumlah} Lembar / Unit</span></div>
+                        <div class="row"><span class="label">Tenggat Waktu (Deadline)</span><span class="val" style="color:#C2141A;">${order.deadline}</span></div>
+                        <div class="row"><span class="label">Tahap Saat Ini</span><span class="val">${this.statusBadge(order.statusProduksi).label}</span></div>
+                    </div>
+                    <div class="instruksi">
+                        <strong>Catatan / Instruksi Khusus:</strong><br>
+                        ${order.catatan ? order.catatan : 'Cetak standar CMYK tajam, cek kerapihan mata ayam/finishing tepi.'}
+                    </div>
+                    <div class="checklist">
+                        <strong>Checklist QC Produksi:</strong>
+                        <div class="check-item"><span class="sq"></span> File Resolusi & Warna CMYK terverifikasi desainer</div>
+                        <div class="check-item"><span class="sq"></span> Hasil Cetak bebas garis / banding / cacat tinta</div>
+                        <div class="check-item"><span class="sq"></span> Pemotongan & Finishing (mata ayam / lipat / roll) rapi</div>
+                        <div class="check-item"><span class="sq"></span> Packing rapi & Siap Diserahkan / Dipasang</div>
+                    </div>
+                    <div class="signatures">
+                        <div class="sig">
+                            <div>Desainer Grafis:</div>
+                            <div class="sig-line"></div>
+                            <div>( Kevin Wonda )</div>
+                        </div>
+                        <div class="sig">
+                            <div>Operator Produksi:</div>
+                            <div class="sig-line"></div>
+                            <div>( Dedi Prasetyo )</div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        },
+
+        cetakInvoice(order) {
+            if (!order) return;
+            const win = window.open('', '_blank');
+            if (!win) { this.toast('Izinkan pop-up untuk mencetak Faktur.'); return; }
+            const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const isLunas = order.sisa <= 0;
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Invoice — ${order.no}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { font-family: 'Segoe UI', Arial, sans-serif; color: #14161C; padding: 20px; font-size: 13px; line-height: 1.5; }
+                        .header { display: flex; justify-content: space-between; border-bottom: 2.5px solid #C2141A; padding-bottom: 15px; margin-bottom: 20px; }
+                        .brand h1 { margin: 0; font-size: 24px; color: #0B1B3D; }
+                        .brand h1 span { color: #C2141A; }
+                        .brand p { margin: 3px 0 0; color: #666; font-size: 11px; }
+                        .inv-meta { text-align: right; }
+                        .inv-meta h2 { margin: 0; font-size: 22px; color: #0B1B3D; letter-spacing: 1px; }
+                        .inv-meta p { margin: 3px 0 0; color: #666; font-size: 12px; }
+                        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                        .bill-to { background: #F8F9FA; border-radius: 8px; padding: 12px; border: 1px solid #E5E7EB; }
+                        .bill-to h4 { margin: 0 0 6px; font-size: 12px; color: #666; text-transform: uppercase; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th { background: #0B1B3D; color: #fff; text-align: left; padding: 10px; font-size: 12px; }
+                        td { padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 12px; }
+                        .total-card { margin-left: auto; width: 280px; }
+                        .total-row { display: flex; justify-content: space-between; padding: 4px 0; }
+                        .total-grand { border-top: 2px solid #0B1B3D; font-weight: bold; font-size: 15px; margin-top: 6px; padding-top: 6px; }
+                        .stamp { display: inline-block; padding: 6px 16px; border: 2px solid ${isLunas ? '#2A9D6B' : '#C2141A'}; color: ${isLunas ? '#2A9D6B' : '#C2141A'}; border-radius: 6px; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transform: rotate(-5deg); margin-top: 10px; }
+                        .footer { margin-top: 40px; border-top: 1px solid #E5E7EB; padding-top: 15px; display: flex; justify-content: space-between; font-size: 11px; color: #666; }
+                        .btn-bar { margin-bottom: 15px; text-align: right; }
+                        @media print { .btn-bar { display: none; } body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="btn-bar">
+                        <button onclick="window.print()" style="background:#C2141A;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:bold;">🖨️ Cetak / Simpan Faktur (PDF)</button>
+                    </div>
+                    <div class="header">
+                        <div class="brand">
+                            <h1>KUGIYAI<span>.TOBE</span></h1>
+                            <p>Digital Printing & Advertising &bull; Waghete, Deiyai, Papua Tengah</p>
+                            <p>WA: 0812-4090-2277 &bull; Email: halo@kugiyaitobe.id</p>
+                        </div>
+                        <div class="inv-meta">
+                            <h2>FAKTUR RESMI</h2>
+                            <p>No: <strong>${order.no}</strong></p>
+                            <p>Tanggal: ${nowStr}</p>
+                            <p>Jatuh Tempo: ${order.deadline}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="bill-to">
+                            <h4>Ditujukan Kepada:</h4>
+                            <div style="font-size:15px;font-weight:bold;color:#0B1B3D;">${order.pelanggan}</div>
+                            <div style="font-size:12px;color:#555;margin-top:2px;">Pelanggan Percetakan</div>
+                        </div>
+                        <div class="bill-to">
+                            <h4>Status Pembayaran:</h4>
+                            <div class="stamp">${isLunas ? 'LUNAS (PAID)' : 'BELUM LUNAS'}</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Deskripsi Pesanan</th>
+                                <th>Ukuran</th>
+                                <th style="text-align:center;">Qty</th>
+                                <th style="text-align:right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong>${order.jenis}</strong>
+                                    <div style="color:#666;font-size:11px;">${order.catatan || 'Cetak kualitas outdoor tahan cuaca'}</div>
+                                </td>
+                                <td>${order.ukuran}</td>
+                                <td style="text-align:center;">${order.jumlah}</td>
+                                <td style="text-align:right;font-weight:600;">${rupiah(order.total)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="total-card">
+                        <div class="total-row"><span>Total Tagihan:</span><span style="font-weight:600;">${rupiah(order.total)}</span></div>
+                        <div class="total-row"><span>Sudah Dibayar (DP):</span><span style="color:#0F6E6E;font-weight:600;">${rupiah(order.dp)}</span></div>
+                        <div class="total-row total-grand"><span>Sisa Tagihan:</span><span style="color:${order.sisa > 0 ? '#C2141A' : '#0B1B3D'};">${rupiah(order.sisa)}</span></div>
+                    </div>
+
+                    <div class="footer">
+                        <div>Terima kasih atas kepercayaan Anda kepada KugiyaiTobe Digital-Printing.</div>
+                        <div>Halaman 1 / 1 &bull; CETAK.OS System</div>
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        },
+
+        eksporPDF() {
+            const win = window.open('', '_blank');
+            if (!win) { this.toast('Izinkan pop-up untuk mencetak / menyimpan PDF.'); return; }
+            const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const rowsHtml = this.orders.map((o, idx) => `
+                <tr>
+                    <td style="text-align:center;">${idx + 1}</td>
+                    <td style="font-family:monospace;font-weight:600;">${o.no}</td>
+                    <td><strong>${o.pelanggan}</strong></td>
+                    <td>${o.jenis} <span style="color:#666;font-size:11px;">(${o.ukuran})</span></td>
+                    <td style="text-align:center;">${o.jumlah}</td>
+                    <td style="text-align:right;">${rupiah(o.total)}</td>
+                    <td style="text-align:right;color:#0F6E6E;">${rupiah(o.dp)}</td>
+                    <td style="text-align:right;color:${o.sisa > 0 ? '#C2141A' : '#666'};font-weight:${o.sisa > 0 ? '700' : 'normal'};">${rupiah(o.sisa)}</td>
+                    <td>${o.deadline}</td>
+                    <td style="text-align:center;"><span class="badge ${o.statusProduksi}">${this.statusBadge(o.statusProduksi).label}</span></td>
+                </tr>
+            `).join('');
+
+            const totalOmset = this.orders.reduce((a, b) => a + b.total, 0);
+            const totalTerbayar = this.orders.reduce((a, b) => a + b.dp, 0);
+            const totalPiutang = this.orders.reduce((a, b) => a + b.sisa, 0);
+
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Laporan Kinerja Percetakan — ${this.reportPeriod} ${nowStr}</title>
+                    <style>
+                        @page { size: A4 landscape; margin: 12mm 15mm; }
+                        body { font-family: 'Segoe UI', Arial, sans-serif; color: #14161C; margin: 0; padding: 20px; font-size: 12px; }
+                        .kop { border-bottom: 2.5px solid #C2141A; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+                        .kop-brand { font-size: 22px; font-weight: 800; color: #0B1B3D; letter-spacing: -0.5px; }
+                        .kop-brand span { color: #C2141A; }
+                        .kop-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
+                        .kop-meta { text-align: right; font-size: 11px; color: #555; }
+                        .doc-title { text-align: center; margin: 16px 0 20px; }
+                        .doc-title h2 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; color: #0B1B3D; }
+                        .doc-title p { margin: 4px 0 0; color: #6B7280; font-size: 12px; }
+                        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+                        .kpi-box { background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px 14px; }
+                        .kpi-label { font-size: 10px; text-transform: uppercase; color: #6B7280; font-weight: 600; }
+                        .kpi-val { font-size: 16px; font-weight: 700; color: #0B1B3D; margin-top: 4px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 11px; }
+                        th { background: #0B1B3D; color: #fff; text-align: left; padding: 8px 10px; font-weight: 600; }
+                        td { padding: 7px 10px; border-bottom: 1px solid #E5E7EB; }
+                        tr:nth-child(even) td { background: #FAFAFA; }
+                        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+                        .badge.selesai { background: #DDF2E7; color: #2A9D6B; }
+                        .badge.cetak { background: #FDE8E8; color: #C2141A; }
+                        .badge.tunggu_desain { background: #F3F4F6; color: #6B7280; }
+                        .badge.tunggu_setuju { background: #FEF3C7; color: #D97706; }
+                        .badge.siap_cetak { background: #DFF3F1; color: #0F6E6E; }
+                        .badge.finishing { background: #EDE9FE; color: #7C5CFC; }
+                        .signatures { display: flex; justify-content: space-between; margin-top: 30px; page-break-inside: avoid; }
+                        .sig-box { width: 220px; text-align: center; }
+                        .sig-line { margin-top: 60px; border-bottom: 1px solid #333; }
+                        .no-print-bar { background: #0B1B3D; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; margin: -20px -20px 20px -20px; border-radius: 0 0 8px 8px; }
+                        .btn-print { background: #C2141A; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+                        @media print {
+                            .no-print-bar { display: none; }
+                            body { padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print-bar">
+                        <span><strong>CETAK.OS</strong> — Preview Dokumen Laporan Resmi</span>
+                        <div>
+                            <button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+                            <button onclick="window.close()" style="background:#555;color:#fff;border:none;padding:8px 14px;border-radius:6px;margin-left:8px;cursor:pointer;">Tutup</button>
+                        </div>
+                    </div>
+
+                    <div class="kop">
+                        <div>
+                            <div class="kop-brand">KUGIYAI<span>.TOBE</span> DIGITAL-PRINTING</div>
+                            <div class="kop-sub">Mugou — Waghete — Deiyai, Papua Tengah &bull; Telp/WA: 0812-4090-2277</div>
+                        </div>
+                        <div class="kop-meta">
+                            <div><strong>Sistem:</strong> CETAK.OS Percetakan</div>
+                            <div><strong>Tanggal Ekspor:</strong> ${nowStr}</div>
+                            <div><strong>Dicetak Oleh:</strong> ${this.loginUserName} (${this.loginRole})</div>
+                        </div>
+                    </div>
+
+                    <div class="doc-title">
+                        <h2>LAPORAN KINERJA & PENJUALAN OPERASIONAL</h2>
+                        <p>Periode: <strong>${this.reportPeriod.toUpperCase()}</strong> &bull; Total Transaksi: ${this.orders.length} Order</p>
+                    </div>
+
+                    <div class="kpi-grid">
+                        <div class="kpi-box">
+                            <div class="kpi-label">Total Omset Pesanan</div>
+                            <div class="kpi-val">${rupiah(totalOmset)}</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">Kas Masuk (DP/Lunas)</div>
+                            <div class="kpi-val" style="color:#0F6E6E;">${rupiah(totalTerbayar)}</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">Sisa Piutang Berjalan</div>
+                            <div class="kpi-val" style="color:#C2141A;">${rupiah(totalPiutang)}</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">Produk Terlaris</div>
+                            <div class="kpi-val">${this.produkTerlaris}</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:30px;text-align:center;">No</th>
+                                <th>No Order</th>
+                                <th>Nama Pelanggan</th>
+                                <th>Jenis & Ukuran</th>
+                                <th style="text-align:center;">Qty</th>
+                                <th style="text-align:right;">Total Biaya</th>
+                                <th style="text-align:right;">Dibayar</th>
+                                <th style="text-align:right;">Sisa Tagihan</th>
+                                <th>Deadline</th>
+                                <th style="text-align:center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="signatures">
+                        <div class="sig-box">
+                            <div>Dibuat Oleh:</div>
+                            <div class="sig-line"></div>
+                            <div style="margin-top:4px;"><strong>${this.loginUserName}</strong></div>
+                            <div style="font-size:10px;color:#666;">${this.loginRole}</div>
+                        </div>
+                        <div class="sig-box">
+                            <div>Waghete, ${nowStr}</div>
+                            <div style="font-size:11px;">Penanggung Jawab / Owner:</div>
+                            <div class="sig-line"></div>
+                            <div style="margin-top:4px;"><strong>Admin KugiyaiTobe</strong></div>
+                            <div style="font-size:10px;color:#666;">Owner Percetakan</div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        },
+
+        eksporLaporan() {
+            const rows = [['No Order', 'Pelanggan', 'Jenis', 'Ukuran', 'Jumlah', 'Total', 'DP', 'Sisa', 'Deadline', 'Status']];
+            this.orders.forEach(o => rows.push([o.no, o.pelanggan, o.jenis, o.ukuran, o.jumlah, o.total, o.dp, o.sisa, o.deadline, this.statusBadge(o.statusProduksi).label]));
+            const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'laporan-cetakos-' + this.reportPeriod.toLowerCase() + '.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.toast('Laporan diekspor sebagai CSV.');
+        },
+
+        runGlobalSearch() {
+            const q = this.globalSearch.trim().toLowerCase();
+            if (!q) return;
+            const orderHit = (this.loginRole === 'Pelanggan' ? this.myOrders : this.orders).find(o => o.no.toLowerCase().includes(q));
+            if (orderHit) { this.page = 'order'; this.orderFilter = 'Semua'; this.toast('Menampilkan hasil untuk "' + this.globalSearch + '"'); return; }
+            if (this.loginRole !== 'Pelanggan') {
+                const custHit = this.customers.find(c => c.nama.toLowerCase().includes(q));
+                if (custHit) { this.page = 'pelanggan'; this.custSearch = this.globalSearch; return; }
+            }
+            this.toast('Tidak ada hasil untuk "' + this.globalSearch + '"');
+        },
+
+        moveStage(order, dir) {
+            const idx = this.produksiCols.findIndex(c => c.key === order.statusProduksi);
+            const next = idx + dir;
+            if (next >= 0 && next < this.produksiCols.length) { order.statusProduksi = this.produksiCols[next].key; this.$nextTick(() => this.renderCharts()); }
+        },
+
+        viewOrder(o) { this.selectedOrder = o; },
+        viewCustomer(c) { this.selectedCustomer = c; },
+        viewDesign(d) { this.selectedDesign = d; },
+
+        init() {
+            this.applyAuthPrefill();
+            this.loadLandingSettings();
+            try {
+                const savedAvatar = localStorage.getItem('kugiyaiUserAvatar');
+                if (savedAvatar) this.loginUserAvatar = savedAvatar;
+            } catch (e) { /* no-op */ }
+
+            // Accessibility: prevent aria-hidden focus blocking when any modal hides
+            document.addEventListener('hide.bs.modal', (e) => {
+                if (document.activeElement && e.target && e.target.contains(document.activeElement)) {
+                    if (typeof document.activeElement.blur === 'function') {
+                        document.activeElement.blur();
+                    }
+                }
+            });
+
+            this.$watch('page', () => setTimeout(() => this.renderCharts(), 120));
+            this.$watch('loginRole', () => { this.page = 'dashboard'; });
+            this.$watch('revenueRange', () => this.renderCharts());
+            this.$watch('reportPeriod', () => this.renderCharts());
+            // Re-render on viewport changes (sidebar collapse, orientation change, etc.)
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => this.renderCharts(), 200);
+            });
+            setTimeout(() => this.renderCharts(), 150);
+        },
+
+        // ============================================================
+        // LANDING PAGE CMS — State & CRUD
+        // ============================================================
+        landingTab: 'umum',          // tab aktif: umum | galeri | testimoni | layanan
+
+        // --- default data (juga dipakai saat reset) ---
+        _defaultLanding() {
+            return {
+                // Umum
+                promoAktif: true,
+                promoPesan: '🎉 PROMO KHUSUS: Diskon 10% untuk pesanan Baliho Flexi di atas 30 m²! Hubungi WhatsApp kami sekarang.',
+                heroEyebrow: 'Percetakan Digital · Waghete, Deiyai',
+                heroJudul: 'Baliho & spanduk tercetak tajam, terkirim cepat.',
+                heroLead: 'Dari desain sampai pasang di lokasi — KugiyaiTobe melayani cetak baliho flexi, spanduk vinyl, banner roll up, dan stiker untuk instansi, gereja, koperasi, dan usaha di seluruh Papua Tengah.',
+                ctaJudul: 'Butuh baliho terpasang minggu ini?',
+                ctaLead: 'Kirim ukuran dan bahan yang Anda mau lewat WhatsApp — tim kami balas dalam hitungan menit di jam kerja.',
+                // Hero Visual / Banner Preview
+                heroBannerGambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
+                heroBannerTag: 'JOB #0150 · IN PRODUCTION',
+                heroBannerJudul: 'TOKO SINAR BALIHO',
+                heroBannerSub: 'Grand Opening · Waghete',
+                heroMetaUkuran: '3 × 4 m',
+                heroMetaBahan: 'Flexi China 280gsm',
+                heroMetaFinishing: 'Mata Ayam',
+                heroMetaEstimasi: '2 hari kerja',
+                // Kontak
+                waNumber: '6281240902277',
+                whatsappPesan: 'Halo KugiyaiTobe, saya ingin pesan cetak',
+                // Harga
+                hargaBaliho: 25000,
+                hargaSpanduk: 35000,
+                hargaStiker: 15000,
+                hargaRollup: 390000,
+                // Statistik
+                statBaliho: 500,
+                statInstansi: 50,
+                statHariProduksi: 2,
+                statTahun: 6,
+                // Galeri (portfolio)
+                galeri: [
+                    { id: 1, nama: 'Toko Sinar Baliho', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#FF6B2C,#E5551A)' },
+                    { id: 2, nama: 'GKI Immanuel', jenis: 'SPANDUK UCAPAN · 1×2M', gambar: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#0F6E6E,#0B5555)' },
+                    { id: 3, nama: 'Dinas Pariwisata', jenis: 'BANNER ROLL UP · PAMERAN', gambar: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#7C5CFC,#5B3FE0)' },
+                    { id: 4, nama: 'Koperasi Cendrawasih Maju', jenis: 'BALIHO FLEXI · 2×3M', gambar: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#F4A100,#C97F00)' },
+                    { id: 5, nama: 'CV Papua Digital Print', jenis: 'STIKER KEMASAN · CUTTING', gambar: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#2A9D6B,#1F7A53)' },
+                    { id: 6, nama: 'Event Sentani', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#E63946,#B91C2B)' },
+                ],
+                // Testimoni
+                testimoni: [
+                    { id: 1, nama: 'Yustus Wanma', instansi: 'Toko Sinar Baliho', kutipan: 'Pesan baliho toko, sehari sebelum grand opening masih sempat direvisi warnanya. Hasilnya tajam dan tepat waktu.', inisial: 'YW', warna: '#FF6B2C' },
+                    { id: 2, nama: 'Maria Ayamiseba', instansi: 'Koperasi Cendrawasih Maju', kutipan: 'Sudah tiga kali cetak spanduk koperasi di sini. Bahannya awet, tidak cepat pudar meski kena hujan.', inisial: 'MA', warna: '#0F6E6E' },
+                    { id: 3, nama: 'Selvi Mansawan', instansi: 'Dinas Pariwisata Kab. Jayapura', kutipan: 'Butuh baliho pameran mendadak, tim KugiyaiTobe bantu desain dan cetak dalam dua hari.', inisial: 'SM', warna: '#7C5CFC' },
+                ],
+                // Layanan
+                layanan: [
+                    { id: 1, nama: 'Baliho Flexi', deskripsi: 'Baliho outdoor tahan cuaca untuk promosi, instansi, dan acara — ukuran custom sesuai lokasi pasang.', hargaLabel: 'MULAI RP 25.000 / M²', iconBg: 'var(--primary-light)', iconColor: 'var(--primary-dark)' },
+                    { id: 2, nama: 'Spanduk Vinyl', deskripsi: 'Spanduk ucapan, event, dan promosi toko — proses cepat, cocok untuk kebutuhan mendadak.', hargaLabel: 'MULAI RP 35.000 / M²', iconBg: '#DFF3F1', iconColor: '#0F6E6E' },
+                    { id: 3, nama: 'Banner Roll Up', deskripsi: 'Banner pameran & booth lengkap dengan standing frame — siap pasang begitu diterima.', hargaLabel: 'MULAI RP 390.000 / UNIT', iconBg: '#EBE6FE', iconColor: '#7C5CFC' },
+                    { id: 4, nama: 'Stiker & Vinyl Cutting', deskripsi: 'Stiker label produk, cutting sticker bentuk custom, dan laminasi doff/glossy.', hargaLabel: 'MULAI RP 15.000 / LEMBAR', iconBg: '#DDF2E7', iconColor: '#2A9D6B' },
+                    { id: 5, nama: 'Neon Box & Signage', deskripsi: 'Papan nama toko dan instansi dengan pencahayaan LED — desain menyesuaikan identitas Anda.', hargaLabel: 'KONSULTASI GRATIS', iconBg: '#FDF0D6', iconColor: '#F4A100' },
+                    { id: 6, nama: 'Desain Grafis', deskripsi: 'Tim desain bantu dari nol sampai final — revisi berjalan sampai Anda benar-benar setuju.', hargaLabel: 'TERMASUK DI SETIAP ORDER', iconBg: '#FBE0E2', iconColor: '#E63946' },
+                ],
+            };
+        },
+
+        landingSettings: null, // diisi oleh loadLandingSettings() di init()
+
+        heroBannerPresets: [
+            { label: 'Toko Sinar Baliho', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Event Sentani', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Spanduk Koperasi', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Gereja Immanuel', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Dinas Pariwisata', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80' },
+        ],
+
+        handleHeroBannerUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            if (file.size > 2.5 * 1024 * 1024) {
+                this.toast('⚠️ Ukuran gambar maksimal 2.5MB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (!this.landingSettings) this.landingSettings = this._defaultLanding();
+                this.landingSettings.heroBannerGambar = e.target.result;
+                this.toast('📷 Foto Banner Preview berhasil dimuat.');
+            };
+            reader.readAsDataURL(file);
+        },
+
+        loadLandingSettings() {
+            const defaults = this._defaultLanding();
+            try {
+                const raw = localStorage.getItem('kugiyaiLandingSettings');
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    // Backfill heroBannerGambar jika dari penyimpanan lama belum ada
+                    if (!saved.heroBannerGambar) saved.heroBannerGambar = defaults.heroBannerGambar;
+                    if (!saved.heroBannerJudul) saved.heroBannerJudul = defaults.heroBannerJudul;
+                    if (!saved.heroBannerSub) saved.heroBannerSub = defaults.heroBannerSub;
+                    if (!saved.heroBannerTag) saved.heroBannerTag = defaults.heroBannerTag;
+                    if (!saved.heroMetaUkuran) saved.heroMetaUkuran = defaults.heroMetaUkuran;
+                    if (!saved.heroMetaBahan) saved.heroMetaBahan = defaults.heroMetaBahan;
+                    if (!saved.heroMetaFinishing) saved.heroMetaFinishing = defaults.heroMetaFinishing;
+                    if (!saved.heroMetaEstimasi) saved.heroMetaEstimasi = defaults.heroMetaEstimasi;
+
+                    // Backfill gambar pada item galeri jika dari penyimpanan lama belum ada gambar
+                    if (Array.isArray(saved.galeri)) {
+                        saved.galeri = saved.galeri.map(g => {
+                            if (!g.gambar) {
+                                const match = defaults.galeri.find(d => d.id === g.id || d.nama === g.nama);
+                                if (match && match.gambar) g.gambar = match.gambar;
+                            }
+                            return g;
+                        });
+                    }
+                    // Deep-merge: primitives overwrite, arrays fully replace if present
+                    this.landingSettings = Object.assign({}, defaults, saved);
+                } else {
+                    this.landingSettings = defaults;
+                }
+            } catch (e) {
+                this.landingSettings = defaults;
+            }
+        },
+
+        saveLandingSettings() {
+            try {
+                localStorage.setItem('kugiyaiLandingSettings', JSON.stringify(this.landingSettings));
+                this.toast('✅ Tersimpan! Refresh landing.html untuk melihat perubahan.');
+            } catch (e) {
+                this.toast('⚠️ Gagal menyimpan (localStorage tidak tersedia).');
+            }
+        },
+
+        resetLandingSettings() {
+            if (!confirm('Reset semua pengaturan landing page ke nilai default?')) return;
+            localStorage.removeItem('kugiyaiLandingSettings');
+            this.landingSettings = this._defaultLanding();
+            this.toast('🔄 Pengaturan dikembalikan ke default.');
+        },
+
+        // ------- GALERI CRUD & IMAGES -------
+        galeriSearch: '',
+        galeriCategoryFilter: 'Semua',
+        galeriViewMode: 'grid', // 'grid' | 'table'
+        _galeriForm: { id: null, nama: '', jenis: '', gambar: '', warna: 'linear-gradient(155deg,#C2141A,#971014)' },
+        _galeriEdit: false,
+        _galeriError: '',
+
+        galeriPresets: [
+            { label: 'Baliho Outdoor Flexi', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Spanduk Vinyl Ucapan', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Banner Roll Up Pameran', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Baliho Billboard Jalan', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Stiker Cutting & Kemasan', url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Panggung & Backdrop Event', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Signage & Neon Box', url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Promosi Toko Retail', url: 'https://images.unsplash.com/photo-1555421689-491a97ff2040?auto=format&fit=crop&w=800&q=80' },
+        ],
+
+        get filteredGaleri() {
+            if (!this.landingSettings || !Array.isArray(this.landingSettings.galeri)) return [];
+            const q = this.galeriSearch.trim().toLowerCase();
+            const cat = this.galeriCategoryFilter;
+            return this.landingSettings.galeri.filter(g => {
+                const matchQ = !q || (g.nama && g.nama.toLowerCase().includes(q)) || (g.jenis && g.jenis.toLowerCase().includes(q));
+                const matchCat = cat === 'Semua' || (g.jenis && g.jenis.toLowerCase().includes(cat.toLowerCase()));
+                return matchQ && matchCat;
+            });
+        },
+
+        handleGaleriImageUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                this.toast('⚠️ Pilih file gambar yang valid (JPG, PNG, WebP).');
+                return;
+            }
+            if (file.size > 3 * 1024 * 1024) {
+                this.toast('⚠️ Ukuran gambar maksimal 3MB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this._galeriForm.gambar = e.target.result;
+                this.toast('📷 Foto portofolio berhasil dimuat.');
+            };
+            reader.readAsDataURL(file);
+        },
+
+        openAddGaleri() {
+            this._galeriError = '';
+            this._galeriForm = {
+                id: null,
+                nama: '',
+                jenis: 'BALIHO FLEXI · 3×4M',
+                gambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
+                warna: 'linear-gradient(155deg,#C2141A,#971014)'
+            };
+            this._galeriEdit = false;
+            const finput = document.getElementById('galeriFileInput');
+            if (finput) finput.value = '';
+            const el = document.getElementById('mdlGaleri');
+            if (el && window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show();
+        },
+
+        openEditGaleri(item) {
+            this._galeriError = '';
+            this._galeriForm = { ...item };
+            this._galeriEdit = true;
+            const finput = document.getElementById('galeriFileInput');
+            if (finput) finput.value = '';
+            const el = document.getElementById('mdlGaleri');
+            if (el && window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show();
+        },
+
+        duplicateGaleri(item) {
+            if (!this.landingSettings || !Array.isArray(this.landingSettings.galeri)) return;
+            const maxId = this.landingSettings.galeri.reduce((m, g) => Math.max(m, g.id || 0), 0);
+            const clone = {
+                ...item,
+                id: maxId + 1,
+                nama: item.nama + ' (Salinan)'
+            };
+            this.landingSettings.galeri.push(clone);
+            this.saveLandingSettings();
+            this.toast('📋 Item galeri "' + item.nama + '" berhasil diduplikasi.');
+        },
+
+        saveGaleriItem() {
+            this._galeriError = '';
+            const f = this._galeriForm;
+            if (!f.nama || !f.nama.trim()) {
+                this._galeriError = 'Nama klien / proyek wajib diisi.';
+                return;
+            }
+            if (!f.jenis || !f.jenis.trim()) {
+                this._galeriError = 'Jenis dan ukuran pekerjaan wajib diisi.';
+                return;
+            }
+            if (!f.warna || !f.warna.trim()) {
+                f.warna = 'linear-gradient(155deg,#C2141A,#971014)';
+            }
+
+            if (this._galeriEdit) {
+                const idx = this.landingSettings.galeri.findIndex(g => g.id === f.id);
+                if (idx !== -1) {
+                    this.landingSettings.galeri[idx] = { ...f };
+                }
+            } else {
+                const maxId = this.landingSettings.galeri.reduce((m, g) => Math.max(m, g.id || 0), 0);
+                this.landingSettings.galeri.push({ ...f, id: maxId + 1 });
+            }
+
+            this.saveLandingSettings();
+            this.closeModal('mdlGaleri');
+            this.toast(this._galeriEdit ? '✅ Item galeri diperbarui.' : '🎉 Item galeri baru berhasil ditambahkan.');
+        },
+
+        deleteGaleri(item) {
+            if (!confirm('Hapus item galeri "' + item.nama + '" dari landing page?')) return;
+            this.landingSettings.galeri = this.landingSettings.galeri.filter(g => g.id !== item.id);
+            this.saveLandingSettings();
+            this.toast('🗑️ Item galeri berhasil dihapus.');
+        },
+
+        moveGaleri(item, dir) {
+            const arr = this.landingSettings.galeri;
+            const i = arr.indexOf(item);
+            const j = i + dir;
+            if (j < 0 || j >= arr.length) return;
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            this.saveLandingSettings();
+            this.toast('↕️ Urutan galeri diperbarui.');
+        },
+
+        // ------- TESTIMONI CRUD -------
+        _testiForm: { id: null, nama: '', instansi: '', kutipan: '', inisial: '', warna: '#FF6B2C' },
+        _testiEdit: false,
+
+        openAddTesti() {
+            this._testiForm = { id: null, nama: '', instansi: '', kutipan: '', inisial: '', warna: '#FF6B2C' };
+            this._testiEdit = false;
+            document.getElementById('mdlTesti') && bootstrap.Modal.getOrCreateInstance(document.getElementById('mdlTesti')).show();
+        },
+        openEditTesti(item) {
+            this._testiForm = { ...item };
+            this._testiEdit = true;
+            document.getElementById('mdlTesti') && bootstrap.Modal.getOrCreateInstance(document.getElementById('mdlTesti')).show();
+        },
+        saveTestiItem() {
+            const f = this._testiForm;
+            if (!f.nama.trim() || !f.kutipan.trim()) { this.toast('⚠️ Nama dan kutipan harus diisi.'); return; }
+            if (!f.inisial.trim()) f.inisial = f.nama.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+            if (this._testiEdit) {
+                const idx = this.landingSettings.testimoni.findIndex(t => t.id === f.id);
+                if (idx !== -1) this.landingSettings.testimoni[idx] = { ...f };
+            } else {
+                const maxId = this.landingSettings.testimoni.reduce((m, t) => Math.max(m, t.id), 0);
+                this.landingSettings.testimoni.push({ ...f, id: maxId + 1 });
+            }
+            this.saveLandingSettings();
+            this.closeModal('mdlTesti');
+        },
+        deleteTesti(item) {
+            if (!confirm('Hapus testimoni dari "' + item.nama + '"?')) return;
+            this.landingSettings.testimoni = this.landingSettings.testimoni.filter(t => t.id !== item.id);
+            this.saveLandingSettings();
+        },
+
+        // ------- LAYANAN CRUD -------
+        _layananForm: { id: null, nama: '', deskripsi: '', hargaLabel: '', iconBg: '#FFF3ED', iconColor: '#FF6B2C' },
+        _layananEdit: false,
+
+        openAddLayanan() {
+            this._layananForm = { id: null, nama: '', deskripsi: '', hargaLabel: '', iconBg: '#FFF3ED', iconColor: '#FF6B2C' };
+            this._layananEdit = false;
+            document.getElementById('mdlLayanan') && bootstrap.Modal.getOrCreateInstance(document.getElementById('mdlLayanan')).show();
+        },
+        openEditLayanan(item) {
+            this._layananForm = { ...item };
+            this._layananEdit = true;
+            document.getElementById('mdlLayanan') && bootstrap.Modal.getOrCreateInstance(document.getElementById('mdlLayanan')).show();
+        },
+        saveLayananItem() {
+            const f = this._layananForm;
+            if (!f.nama.trim() || !f.deskripsi.trim()) { this.toast('⚠️ Nama dan deskripsi harus diisi.'); return; }
+            if (this._layananEdit) {
+                const idx = this.landingSettings.layanan.findIndex(l => l.id === f.id);
+                if (idx !== -1) this.landingSettings.layanan[idx] = { ...f };
+            } else {
+                const maxId = this.landingSettings.layanan.reduce((m, l) => Math.max(m, l.id), 0);
+                this.landingSettings.layanan.push({ ...f, id: maxId + 1 });
+            }
+            this.saveLandingSettings();
+            this.closeModal('mdlLayanan');
+        },
+        deleteLayanan(item) {
+            if (!confirm('Hapus layanan "' + item.nama + '"?')) return;
+            this.landingSettings.layanan = this.landingSettings.layanan.filter(l => l.id !== item.id);
+            this.saveLandingSettings();
+        },
+        moveLayanan(item, dir) {
+            const arr = this.landingSettings.layanan;
+            const i = arr.indexOf(item);
+            const j = i + dir;
+            if (j < 0 || j >= arr.length) return;
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+            this.saveLandingSettings();
+        },
+
+        // ---------- chart data helpers ----------
+        revenueSeries() {
+            if (this.revenueRange === 'mingguan') {
+                return {
+                    labels: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8'],
+                    data: [8.4, 10.1, 9.3, 12.7, 11.5, 14.2, 13.6, 16.8],
+                };
+            }
+            return {
+                labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'],
+                data: [1.2, 1.8, 1.5, 2.1, 1.9, 2.6, 2.2, 3.1, 2.8, 3.4, 3.0, 3.8, 3.5, 4.1],
+            };
+        },
+        salesSeries() {
+            const sets = {
+                Harian: { labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'], data: [2.1, 3.4, 2.8, 4.0, 3.6, 5.2, 3.1] },
+                Mingguan: { labels: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'], data: [9.2, 12.4, 10.8, 16.1] },
+                Bulanan: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu'], data: [28, 32, 30, 35, 38, 41, 39, 46] },
+                Tahunan: { labels: ['2022', '2023', '2024', '2025', '2026'], data: [180, 220, 260, 310, 340] },
+            };
+            return sets[this.reportPeriod] || sets.Mingguan;
+        },
+
+        // NOTE: Chart.js instances are intentionally NOT stored on `this` / Alpine's
+        // reactive data. Alpine wraps reactive properties in a Proxy, and Chart.js
+        // keeps internal registries/WeakMaps keyed by the exact canvas + instance
+        // reference. Storing instances reactively breaks Chart.js's own cleanup,
+        // which then throws "Canvas is already in use" on re-render and silently
+        // aborts every chart after that. We use Chart.js's own Chart.getChart()
+        // registry to safely find-and-destroy any prior instance on a canvas.
+        destroyChartOn(canvasEl) {
+            if (!canvasEl || typeof Chart === 'undefined') return;
+            try {
+                const existing = Chart.getChart(canvasEl);
+                if (existing) existing.destroy();
+            } catch (e) { /* no-op: nothing attached yet */ }
+        },
+        renderCharts() {
+            const el = id => document.getElementById(id);
+            if (typeof Chart === 'undefined') {
+                this._chartRetries = (this._chartRetries || 0) + 1;
+                if (this._chartRetries <= 3) {
+                    console.warn('[CETAK.OS] Menunggu Chart.js (percobaan ' + this._chartRetries + '/3)...');
+                    setTimeout(() => this.renderCharts(), 400);
+                } else {
+                    console.warn('[CETAK.OS] Chart.js tidak tersedia. Grafik tidak dapat dirender.');
+                }
+                return;
+            }
+            this._chartRetries = 0;
+            console.debug('[CETAK.OS] renderCharts() dipanggil — page:', this.page, 'role:', this.loginRole);
+            Chart.defaults.font.family = "'Inter',sans-serif";
+            Chart.defaults.color = '#6B7280';
+
+            // Charts are created immediately below — never gated behind a
+            // "wait until visible" check, because that kind of check can
+            // silently stall forever (no console error) if it ever
+            // mis-detects the canvas as not-ready. Instead, as a safety net
+            // for the rare case a canvas reports a 0×0 size at creation time
+            // (e.g. right as an x-show transition is finishing), we call
+            // chart.resize() one animation frame later for every chart we
+            // just created. This never blocks the initial render.
+            const created = [];
+
+            try {
+                if (this.page === 'dashboard' && el('chartRevenue') && this.loginRole !== 'Pelanggan') {
+                    const canvas = el('chartRevenue');
+                    this.destroyChartOn(canvas);
+                    const series = this.revenueSeries();
+                    created.push(new Chart(canvas, {
+                        type: 'line',
+                        data: {
+                            labels: series.labels,
+                            datasets: [{ label: 'Pendapatan', data: series.data, borderColor: '#C2141A', backgroundColor: 'rgba(194,20,26,0.08)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2.5 }]
+                        },
+                        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#F1EEE7' }, ticks: { callback: v => v + 'jt' } } }, responsive: true, maintainAspectRatio: false }
+                    }));
+                }
+            } catch (e) { console.error('chartRevenue error:', e); }
+
+            try {
+                if (this.page === 'dashboard' && el('chartStatus')) {
+                    const canvas = el('chartStatus');
+                    this.destroyChartOn(canvas);
+                    const dist = this.statusDist;
+                    created.push(new Chart(canvas, {
+                        type: 'doughnut',
+                        data: { labels: dist.map(s => s.label), datasets: [{ data: dist.map(s => s.value), backgroundColor: dist.map(s => s.color), borderWidth: 0 }] },
+                        options: { cutout: '70%', plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+                    }));
+                }
+            } catch (e) { console.error('chartStatus error:', e); }
+
+            try {
+                if (this.page === 'laporan' && el('chartSales')) {
+                    const canvas = el('chartSales');
+                    this.destroyChartOn(canvas);
+                    const series = this.salesSeries();
+                    created.push(new Chart(canvas, {
+                        type: 'bar',
+                        data: { labels: series.labels, datasets: [{ label: 'Penjualan', data: series.data, backgroundColor: '#C2141A', borderRadius: 8, maxBarThickness: 42 }] },
+                        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#F1EEE7' }, ticks: { callback: v => v + 'jt' } } }, responsive: true, maintainAspectRatio: false }
+                    }));
+                }
+            } catch (e) { console.error('chartSales error:', e); }
+
+            try {
+                if (this.page === 'laporan' && el('chartProduk')) {
+                    const canvas = el('chartProduk');
+                    this.destroyChartOn(canvas);
+                    const counts = this.orderCountsByJenis();
+                    const palette = ['#C2141A', '#0F6E6E', '#7C5CFC', '#F0C51A', '#2A9D6B', '#0B1B3D'];
+                    created.push(new Chart(canvas, {
+                        type: 'doughnut',
+                        data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: Object.keys(counts).map((_, i) => palette[i % palette.length]), borderWidth: 0 }] },
+                        options: { cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }, responsive: true, maintainAspectRatio: false }
+                    }));
+                }
+            } catch (e) { console.error('chartProduk error:', e); }
+
+            try {
+                if (this.page === 'laporan' && el('chartBahan')) {
+                    const canvas = el('chartBahan');
+                    this.destroyChartOn(canvas);
+                    created.push(new Chart(canvas, {
+                        type: 'bar',
+                        data: { labels: this.stok.map(s => s.nama), datasets: [{ label: 'Terpakai', data: this.stok.map(s => s.keluar), backgroundColor: '#0F6E6E', borderRadius: 8, maxBarThickness: 34 }] },
+                        options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#F1EEE7' } }, y: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
+                    }));
+                }
+            } catch (e) { console.error('chartBahan error:', e); }
+
+            console.debug('[CETAK.OS] chart dibuat:', created.length, '/ canvas relevan untuk halaman ini');
+            if (created.length) {
+                requestAnimationFrame(() => {
+                    created.forEach(c => { try { c.resize(); } catch (e) { /* chart may have been destroyed by a fast page switch */ } });
+                });
+            }
+        }
+    };
+}
+
+window.app = app;
+
+if (window.Alpine) {
+    window.Alpine.data('app', app);
+}
+document.addEventListener('alpine:init', () => {
+    if (window.Alpine) {
+        window.Alpine.data('app', app);
+    }
+});

@@ -3,7 +3,7 @@ function rupiah(n) {
 }
 window.rupiah = rupiah;
 
-console.info('[CETAK.OS] script.js loaded — build 2026-08-24 (persistent localStorage data)');
+console.info('[CETAK.OS] script.js loaded — build 2026-08-25 (pilih lokasi pengantaran manual)');
 
 // Kunci localStorage tempat seluruh data operasional (pelanggan, order, desain,
 // pembayaran, stok, user) disimpan permanen di browser. Diberi akhiran versi
@@ -29,7 +29,7 @@ const SESSION_KEY = 'kugiyaiSession_v1';
 
 // Titik keberangkatan (asal) seluruh pengantaran: lokasi toko/percetakan
 // di Waghete, Deiyai, Papua Tengah.
-const TOKO_LOKASI = { lat: -4.0451, lng: 136.2822, label: 'Percetakan Kugiyaidimi — Jl. Trans Papua, Waghete' };
+const TOKO_LOKASI = { lat: -4.0346375, lng: 136.2877969, label: 'Percetakan Kugiyaidimi — Jl. Mugou Kebo, Waghete II, Kec. Tigi, Kab. Deiyai, Papua Tengah 98764' };
 window.TOKO_LOKASI = TOKO_LOKASI;
 
 // Jarak garis-lurus antar 2 koordinat (haversine), hasil dalam kilometer.
@@ -64,6 +64,89 @@ function seedCoordFromString(str, center) {
     };
 }
 window.seedCoordFromString = seedCoordFromString;
+
+// ============================================================
+// RUTE JALAN SUNGGUHAN (OSRM) — dipakai supaya jalur & posisi kurir di peta
+// mengikuti bentuk jalan yang sebenarnya (bukan garis lurus udara), dan
+// jarak/ETA dihitung dari jarak tempuh jalan yang riil.
+// ============================================================
+
+// Cache hasil rute per pasangan asal→tujuan supaya tidak fetch berulang
+// untuk kombinasi yang sama persis dalam satu sesi halaman.
+const _ruteCache = {};
+
+// Ambil rute jalan antara dua titik lewat OSRM (Open Source Routing Machine),
+// layanan routing publik gratis berbasis data jalan OpenStreetMap — sumber
+// data yang sama dengan tile peta yang sudah dipakai Leaflet di aplikasi ini.
+// Hasil: daftar titik koordinat mengikuti bentuk jalan sungguhan, jarak
+// tempuh riil (km), estimasi durasi berkendara (menit), dan jarak kumulatif
+// tiap titik (untuk menempatkan posisi kurir tepat di sepanjang jalan sesuai
+// persentase progress). Kalau gagal — tidak ada internet, atau OSRM tidak
+// menemukan jalur yang menghubungkan kedua titik (mis. daerah yang jalannya
+// belum lengkap terpetakan di OpenStreetMap) — fungsi ini mengembalikan
+// null, dan pemanggilnya otomatis jatuh balik ke garis lurus (haversine)
+// supaya pelacakan tetap berjalan walau tanpa rute jalan.
+async function fetchRuteJalan(asal, tujuan) {
+    const key = asal.lat.toFixed(5) + ',' + asal.lng.toFixed(5) + '>' + tujuan.lat.toFixed(5) + ',' + tujuan.lng.toFixed(5);
+    if (Object.prototype.hasOwnProperty.call(_ruteCache, key)) return _ruteCache[key];
+    try {
+        const url = 'https://router.project-osrm.org/route/v1/driving/' +
+            asal.lng + ',' + asal.lat + ';' + tujuan.lng + ',' + tujuan.lat +
+            '?overview=full&geometries=geojson';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('OSRM HTTP ' + res.status);
+        const data = await res.json();
+        if (data.code !== 'Ok' || !data.routes || !data.routes.length) throw new Error('OSRM: rute tidak ditemukan');
+        const route = data.routes[0];
+        // GeoJSON pakai urutan [lng, lat] — dibalik ke {lat, lng} supaya
+        // konsisten dengan format koordinat yang dipakai di seluruh aplikasi.
+        const coords = route.geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+        const hasil = {
+            coords,
+            jarakKm: route.distance / 1000,
+            durasiMenit: route.duration / 60,
+            cum: kumulatifJarak(coords),
+        };
+        _ruteCache[key] = hasil;
+        return hasil;
+    } catch (e) {
+        console.warn('[CETAK.OS] Rute jalan tidak tersedia, pakai garis lurus sebagai cadangan:', e && e.message);
+        _ruteCache[key] = null;
+        return null;
+    }
+}
+window.fetchRuteJalan = fetchRuteJalan;
+
+// Jarak kumulatif (km, haversine per-segmen) dari titik pertama ke setiap
+// titik rute — dipakai untuk menempatkan posisi kurir di titik yang tepat
+// sepanjang bentuk jalan sesuai persentase progress perjalanan.
+function kumulatifJarak(coords) {
+    const cum = [0];
+    for (let i = 1; i < coords.length; i++) {
+        cum.push(cum[i - 1] + haversineKm(coords[i - 1], coords[i]));
+    }
+    return cum;
+}
+window.kumulatifJarak = kumulatifJarak;
+
+// Posisi di sepanjang rute (array titik + jarak kumulatif) untuk suatu
+// progress 0..1 — hasilnya selalu berada TEPAT DI ATAS jalur jalan, bukan
+// hasil interpolasi garis lurus antara dua titik jauh.
+function posisiSepanjangRute(rute, progress) {
+    const total = rute.cum[rute.cum.length - 1] || 0.0001;
+    const target = Math.min(total, Math.max(0, total * progress));
+    let i = 1;
+    while (i < rute.cum.length && rute.cum[i] < target) i++;
+    if (i >= rute.cum.length) return rute.coords[rute.coords.length - 1];
+    const segFrom = rute.coords[i - 1], segTo = rute.coords[i];
+    const segLen = rute.cum[i] - rute.cum[i - 1] || 0.0001;
+    const t = (target - rute.cum[i - 1]) / segLen;
+    return {
+        lat: segFrom.lat + (segTo.lat - segFrom.lat) * t,
+        lng: segFrom.lng + (segTo.lng - segFrom.lng) * t,
+    };
+}
+window.posisiSepanjangRute = posisiSepanjangRute;
 
 // Titik tujuan pengantaran untuk sebuah pelanggan/order — dibungkus supaya
 // label alamat ikut terbawa bila tersedia.
@@ -120,12 +203,12 @@ function app() {
         revenueRange: 'harian',
 
         avatarPresets: [
-            { label: 'Admin Cetak', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80' },
-            { label: 'Operator Pro', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=160&q=80' },
-            { label: 'Desainer Grafis', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80' },
-            { label: 'Kasir Utama', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80' },
-            { label: 'Pimpinan / Owner', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=160&q=80' },
-            { label: 'Klien Percetakan', url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=160&q=80' },
+            { label: 'Admin Cetak', url: 'asset/img/gallery/gallery-1.jpeg' },
+            { label: 'Operator Pro', url: 'asset/img/gallery/gallery-2.jpeg' },
+            { label: 'Desainer Grafis', url: 'asset/img/gallery/gallery-3.png' },
+            { label: 'Kasir Utama', url: 'asset/img/gallery/gallery-4.png' },
+            { label: 'Pimpinan / Owner', url: 'asset/img/gallery/gallery-5.jpeg' },
+            { label: 'Klien Percetakan', url: 'asset/img/gallery/gallery-6.jpeg' },
         ],
 
         // ---------- nav ----------
@@ -168,20 +251,32 @@ function app() {
         pelangganError: '',
         formDesain: { orderNo: '', file: '', gambar: '', catatan: '' },
         desainError: '',
-        formKirim: { kurir: '' },
+        // formKirim.lokasiTujuan: { lat, lng } — koordinat tujuan pengantaran
+        // yang WAJIB dipilih secara manual oleh owner/kurir (klik/seret pin di
+        // peta mini, atau tombol "pakai lokasi tersimpan" / "pakai lokasi saya
+        // sekarang") SEBELUM pengantaran boleh dimulai. Sebelumnya titik ini
+        // dibuat otomatis/acak dari nama pelanggan — sekarang harus dikonfirmasi
+        // manusia dulu. Lihat bukaFormKirim(), initLokasiPickerMap(), prosesKirim().
+        formKirim: { kurir: '', lokasiTujuan: null, alamatTujuan: '' },
         kirimError: '',
         kirimPanelOpen: false,
+        // Titik lokasi pengantaran yang ditandai Pelanggan di peta modal
+        // "Buat Order Baru" (mapLokasiOrderBaru). Diisi otomatis dari
+        // customer.koordinat kalau sudah pernah ada, atau lewat klik/seret
+        // pin/tombol GPS. Ikut disimpan ke customer.koordinat begitu order
+        // berhasil dibuat — lihat initLokasiOrderBaruMap() & simpanOrder().
+        _orderBaruLokasiPending: null,
         petaFokusId: null,
         clockTick: 0,
         desainFilter: 'Semua',
         desainSearch: '',
         desainPresets: [
-            { label: 'Stiker & Label Cutting', url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80', file: 'stiker_cutting_final.ai' },
-            { label: 'Baliho Digital Printing', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80', file: 'baliho_flexi_3x4.cdr' },
-            { label: 'Banner Roll Up Pameran', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80', file: 'banner_rollup_expo.pdf' },
-            { label: 'Baliho Toko Promosi', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80', file: 'baliho_toko_v2.ai' },
-            { label: 'Spanduk Acara Gereja', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80', file: 'spanduk_event_final.cdr' },
-            { label: 'Backdrop Panggung Event', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80', file: 'stage_backdrop_v1.ai' },
+            { label: 'Stiker & Label Cutting', url: '    ', file: 'stiker_cutting_final.ai' },
+            { label: 'Baliho Digital Printing', url: 'asset/img/gallery/gallery-1.jpeg', file: 'baliho_flexi_3x4.cdr' },
+            { label: 'Banner Roll Up Pameran', url: 'asset/img/gallery/gallery-3.png', file: 'banner_rollup_expo.pdf' },
+            { label: 'Baliho Toko Promosi', url: 'asset/img/gallery/gallery-4.png', file: 'baliho_toko_v2.ai' },
+            { label: 'Spanduk Acara Gereja', url: 'asset/img/gallery/gallery-2.jpeg', file: 'spanduk_event_final.cdr' },
+            { label: 'Backdrop Panggung Event', url: 'asset/img/gallery/gallery-6.jpeg', file: 'stage_backdrop_v1.ai' },
         ],
         formBayar: { orderNo: '', jenis: 'DP', metode: 'Tunai', jumlah: null },
         bayarError: '',
@@ -190,7 +285,12 @@ function app() {
         formUser: { nama: '', email: '', role: 'Admin' },
         userError: '',
 
-        resetFormOrder() { this.formOrder = { pelangganId: '', jenis: 'Baliho Flexi', panjang: null, lebar: null, satuan: 'm', jumlah: 1, hargaM2: 25000, biayaDesain: 0, biayaFinishing: 0, dp: 0, metodeDp: 'Tunai', deadline: '', catatan: '' }; this.orderError = ''; },
+        resetFormOrder() {
+            this.formOrder = { pelangganId: '', jenis: 'Baliho Flexi', panjang: null, lebar: null, satuan: 'm', jumlah: 1, hargaM2: 25000, biayaDesain: 0, biayaFinishing: 0, dp: 0, metodeDp: 'Tunai', deadline: '', catatan: '' };
+            this.orderError = '';
+            this._orderBaruLokasiPending = null;
+            if (this._orderBaruMap) { try { this._orderBaruMap.remove(); } catch (e) { /* no-op */ } this._orderBaruMap = null; this._orderBaruMarker = null; }
+        },
         resetFormPelanggan() { this.formPelanggan = { nama: '', hp: '', alamat: '', instansi: '' }; this.pelangganError = ''; },
         resetFormDesain() { this.formDesain = { orderNo: '', file: '', gambar: '', catatan: '' }; this.desainError = ''; },
         resetFormBayar() { this.formBayar = { orderNo: '', jenis: 'DP', metode: 'Tunai', jumlah: null }; this.bayarError = ''; },
@@ -387,6 +487,25 @@ function app() {
             const list = this.pengantaran.filter(p => p.orderNo === orderNo);
             if (!list.length) return null;
             return list.slice().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
+        },
+        // Versi AMAN dari pengantaranForOrder() untuk dipakai langsung di HTML
+        // (x-text). pengantaranForOrder() bisa balikin null kalau order belum
+        // pernah dikirim sama sekali (belum ada rekaman pengantaran) — kalau
+        // template langsung memanggil .jarakSisaKm.toFixed(1) di atas null,
+        // Alpine akan error "Cannot read properties of null". Method ini
+        // SELALU mengembalikan teks yang valid untuk semua kemungkinan status
+        // (belum dikirim / proses / tiba / selesai / batal), jadi HTML cukup
+        // panggil satu ekspresi ini tanpa perlu guard tambahan.
+        labelStatusAntar(orderNo) {
+            const p = this.pengantaranForOrder(orderNo);
+            if (!p) return 'Belum dikirim — menunggu produksi selesai & kurir berangkat.';
+            if (p.status === 'batal') return 'Pengantaran sebelumnya dibatalkan.';
+            if (p.status === 'selesai') return 'Diterima pelanggan · ' + this.relatif(p.updatedAt);
+            if (p.status === 'tiba') return 'Kurir sudah tiba di tujuan · ' + this.relatif(p.updatedAt);
+            // status 'proses'
+            const sisa = (typeof p.jarakSisaKm === 'number') ? p.jarakSisaKm.toFixed(1) : '-';
+            const eta = (typeof p.etaMenit === 'number') ? ' · ETA ' + p.etaMenit + ' menit' : '';
+            return sisa + ' km lagi' + eta + ' · diperbarui ' + this.relatif(p.updatedAt);
         },
         canKirim(order) {
             if (!order || order.statusProduksi !== 'selesai') return false;
@@ -633,6 +752,20 @@ function app() {
             };
             return map[key] || { label: key, cls: 'bg-steel text-white' };
         },
+        // Badge status pengantaran — satu sumber kebenaran yang dipakai baik
+        // di dashboard Owner (Daftar Order, halaman Peta) maupun dashboard
+        // Pelanggan ("Pesanan Saya"), supaya label & warna status antar SELALU
+        // konsisten di kedua sisi dan tidak pernah drift satu sama lain.
+        statusAntarBadge(orderNo) {
+            const p = this.pengantaranForOrder(orderNo);
+            if (!p || p.status === 'batal') return { label: 'Belum Dikirim', cls: 'bg-steel/10 text-steel' };
+            const map = {
+                proses: { label: 'Sedang Diantar', cls: 'bg-primary-light text-primary' },
+                tiba: { label: 'Kurir Tiba', cls: 'bg-amber-light text-amber' },
+                selesai: { label: 'Diterima', cls: 'bg-green-light text-green' },
+            };
+            return map[p.status] || { label: p.status, cls: 'bg-steel/10 text-steel' };
+        },
 
         // ---------- order form calc ----------
         konversiKeMeter(nilai, satuan) {
@@ -679,6 +812,16 @@ function app() {
             if (!this.formOrder.jumlah || this.formOrder.jumlah < 1) { this.orderError = 'Jumlah minimal 1.'; return; }
             if (!this.formOrder.hargaM2 || this.formOrder.hargaM2 <= 0) { this.orderError = 'Isi harga per m².'; return; }
             if (!this.formOrder.deadline) { this.orderError = 'Tentukan tanggal deadline.'; return; }
+
+            // Simpan titik lokasi yang ditandai pelanggan di peta modal ini ke
+            // customer.koordinat — field yang sama otomatis dibaca Owner
+            // (bukaFormKirim()) saat order ini nanti siap diantar, sehingga
+            // lokasi tujuan sudah terisi otomatis tanpa perlu dipilih ulang.
+            // Dilakukan di sini (setelah semua validasi lolos) supaya order
+            // yang gagal disimpan tidak ikut mengubah data lokasi pelanggan.
+            if (this.loginRole === 'Pelanggan' && this.myCustomer && this._orderBaruLokasiPending) {
+                this.myCustomer.koordinat = { lat: this._orderBaruLokasiPending.lat, lng: this._orderBaruLokasiPending.lng };
+            }
 
             const total = Math.round(this.hitungTotalOrder());
             const dp = Math.min(Math.round(this.formOrder.dp || 0), total);
@@ -773,7 +916,7 @@ function app() {
 
             const palette = ['from-teal to-teal-dark', 'from-primary to-primary-dark', 'from-violet to-ink', 'from-amber to-primary', 'from-green to-teal', 'from-ink to-steel'];
             const existing = this.designs.find(d => d.orderNo === this.formDesain.orderNo);
-            const gambarVal = this.formDesain.gambar || (existing ? existing.gambar : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80');
+            const gambarVal = this.formDesain.gambar || (existing ? existing.gambar : 'asset/img/gallery/gallery-1.jpeg');
 
             if (existing) {
                 existing.versi += 1;
@@ -1189,6 +1332,11 @@ function app() {
                 this.orders.forEach(o => { if (o.pelanggan === oldName) o.pelanggan = this.loginUserName; });
                 this.designs.forEach(d => { if (d.pelanggan === oldName) d.pelanggan = this.loginUserName; });
                 this.payments.forEach(p => { if (p.pelanggan === oldName) p.pelanggan = this.loginUserName; });
+                // Data pengantaran (pelacakan kurir/GPS) juga mengunci relasi ke
+                // pelanggan lewat field nama — kalau tidak ikut disinkronkan di
+                // sini, riwayat & status antar pelanggan ini akan "hilang" dari
+                // dashboard-nya sendiri begitu dia ganti nama profil.
+                this.pengantaran.forEach(p => { if (p.pelanggan === oldName) p.pelanggan = this.loginUserName; });
             } else {
                 const u = this.users.find(x => x.nama === oldName || x.role === this.loginRole);
                 if (u) {
@@ -1646,18 +1794,143 @@ function app() {
         bukaFormKirim() {
             this.kirimError = '';
             this.formKirim.kurir = (this.kurirAktif[0] && this.kurirAktif[0].nama) || '';
+            const order = this.selectedOrder;
+            const customer = order ? this.customers.find(c => c.nama === order.pelanggan) : null;
+            // Kalau pelanggan ini sudah pernah punya titik lokasi tersimpan
+            // (dipilih manual sendiri oleh pelanggan, atau dari pengantaran
+            // sebelumnya), pra-isi peta dengan titik itu supaya owner/kurir
+            // tinggal konfirmasi/geser kalau perlu. Kalau belum ada sama
+            // sekali, biarkan kosong — WAJIB dipilih manual.
+            if (customer && customer.koordinat && typeof customer.koordinat.lat === 'number') {
+                this.formKirim.lokasiTujuan = { lat: customer.koordinat.lat, lng: customer.koordinat.lng };
+            } else {
+                this.formKirim.lokasiTujuan = null;
+            }
+            this.formKirim.alamatTujuan = (customer && customer.alamat) ? customer.alamat : '';
             this.kirimPanelOpen = true;
+            // Peta lain yang mungkin sedang tampil di modal yang sama (peta
+            // read-only pelacakan, atau peta pilih-lokasi milik pelanggan)
+            // harus dibersihkan dulu supaya tidak berebut container/ganggu.
+            if (this._miniMap) { try { this._miniMap.remove(); } catch (e) { /* no-op */ } this._miniMap = null; this._miniKurirMarker = null; }
+            if (this._plgMap) { try { this._plgMap.remove(); } catch (e) { /* no-op */ } this._plgMap = null; this._plgMarker = null; }
+            this.$nextTick(() => this.initLokasiPickerMap());
         },
-        tutupFormKirim() { this.kirimPanelOpen = false; },
+        tutupFormKirim() {
+            this.kirimPanelOpen = false;
+            // Hancurkan instance peta mini supaya tidak menumpuk / "leak" saat
+            // panel dibuka-tutup berkali-kali (Leaflet tidak boleh di-init dua
+            // kali di atas container yang sama tanpa dibersihkan dulu).
+            if (this._pickerMap) {
+                try { this._pickerMap.remove(); } catch (e) { /* no-op */ }
+                this._pickerMap = null;
+                this._pickerMarker = null;
+            }
+        },
+
+        // ---------- peta mini "pilih lokasi pengantaran" di Form Kirim ----------
+        initLokasiPickerMap() {
+            const container = document.getElementById('mapPilihLokasi');
+            if (!container || typeof L === 'undefined') return;
+            if (this._pickerMap) { try { this._pickerMap.remove(); } catch (e) { /* no-op */ } this._pickerMap = null; this._pickerMarker = null; }
+
+            const start = this.formKirim.lokasiTujuan || TOKO_LOKASI;
+            this._pickerMap = L.map(container, { zoomControl: true, attributionControl: false })
+                .setView([start.lat, start.lng], this.formKirim.lokasiTujuan ? 15 : 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._pickerMap);
+
+            L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [26, 26], iconAnchor: [13, 24] }),
+                interactive: false,
+            }).addTo(this._pickerMap);
+
+            const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+            if (this.formKirim.lokasiTujuan) {
+                this._pickerMarker = L.marker([start.lat, start.lng], { icon: tujuanIcon, draggable: true }).addTo(this._pickerMap);
+                this._pickerMarker.on('dragend', () => {
+                    const ll = this._pickerMarker.getLatLng();
+                    this.formKirim.lokasiTujuan = { lat: ll.lat, lng: ll.lng };
+                });
+            }
+
+            // Klik di mana saja pada peta = tetapkan/geser titik tujuan ke sana.
+            this._pickerMap.on('click', (e) => {
+                this.setLokasiPicker(e.latlng.lat, e.latlng.lng);
+            });
+
+            setTimeout(() => { if (this._pickerMap) this._pickerMap.invalidateSize(); }, 120);
+        },
+
+        // Menetapkan (atau memindahkan) pin tujuan pengantaran ke koordinat
+        // tertentu — dipanggil dari klik peta, drag pin, geolokasi perangkat,
+        // atau tombol "pakai lokasi tersimpan pelanggan".
+        setLokasiPicker(lat, lng) {
+            this.formKirim.lokasiTujuan = { lat, lng };
+            this.kirimError = '';
+            if (!this._pickerMap) return;
+            const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+            if (!this._pickerMarker) {
+                this._pickerMarker = L.marker([lat, lng], { icon: tujuanIcon, draggable: true }).addTo(this._pickerMap);
+                this._pickerMarker.on('dragend', () => {
+                    const ll = this._pickerMarker.getLatLng();
+                    this.formKirim.lokasiTujuan = { lat: ll.lat, lng: ll.lng };
+                });
+            } else {
+                this._pickerMarker.setLatLng([lat, lng]);
+            }
+            this._pickerMap.panTo([lat, lng], { animate: true });
+        },
+
+        // Tombol bantu: pakai titik lokasi pelanggan yang sudah pernah
+        // disimpan dari pengantaran sebelumnya (kalau ada).
+        gunakanLokasiTersimpan() {
+            const order = this.selectedOrder;
+            const customer = order ? this.customers.find(c => c.nama === order.pelanggan) : null;
+            if (!customer || !customer.koordinat) {
+                this.kirimError = 'Belum ada lokasi tersimpan untuk pelanggan ini — silakan pilih manual di peta.';
+                return;
+            }
+            this.setLokasiPicker(customer.koordinat.lat, customer.koordinat.lng);
+            if (this._pickerMap) this._pickerMap.setView([customer.koordinat.lat, customer.koordinat.lng], 15);
+        },
+
+        // Tombol bantu: pakai lokasi GPS perangkat saat ini (mis. kurir/owner
+        // sedang berada persis di titik antar / lokasi pelanggan).
+        gunakanLokasiSaya() {
+            if (!navigator.geolocation) {
+                this.kirimError = 'Perangkat ini tidak mendukung deteksi lokasi GPS.';
+                return;
+            }
+            this.kirimError = '';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.setLokasiPicker(pos.coords.latitude, pos.coords.longitude);
+                    if (this._pickerMap) this._pickerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                },
+                () => { this.kirimError = 'Gagal mengambil lokasi GPS. Izinkan akses lokasi, atau pilih manual di peta.'; },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        },
 
         prosesKirim() {
             const order = this.selectedOrder;
             if (!order) return;
             if (!this.formKirim.kurir) { this.kirimError = 'Pilih kurir terlebih dahulu.'; return; }
+            if (!this.formKirim.lokasiTujuan) {
+                this.kirimError = 'Pilih dulu lokasi pengantaran di peta (klik peta, atau pakai tombol lokasi tersimpan/lokasi saya).';
+                return;
+            }
             const kurirObj = this.kurirAktif.find(k => k.nama === this.formKirim.kurir);
             const customer = this.customers.find(c => c.nama === order.pelanggan);
             const asal = TOKO_LOKASI;
-            const tujuan = koordinatTujuan(customer, order);
+            const tujuan = {
+                lat: this.formKirim.lokasiTujuan.lat,
+                lng: this.formKirim.lokasiTujuan.lng,
+                label: (this.formKirim.alamatTujuan || '').trim() || (customer && customer.alamat) || order.pelanggan,
+            };
+            // Simpan titik yang baru saja dikonfirmasi ke data pelanggan supaya
+            // pengantaran berikutnya untuk pelanggan yang sama bisa langsung
+            // dipakai ulang lewat tombol "pakai lokasi tersimpan".
+            if (customer) customer.koordinat = { lat: tujuan.lat, lng: tujuan.lng };
             const jarak = haversineKm(asal, tujuan);
             const now = new Date().toISOString();
             const rec = {
@@ -1685,7 +1958,53 @@ function app() {
             this.saveCoreData();
             this.toast('🛵 ' + order.no + ' sedang diantar oleh ' + rec.kurir + '.');
             this._boundsFitted = false;
-            this.$nextTick(() => this.renderPetaMap());
+            // Bersihkan peta pemilihan lokasi (sudah tidak dipakai lagi setelah
+            // dikirim) lalu tampilkan peta pelacakan read-only-nya di modal
+            // yang sama, supaya owner langsung melihat kurir mulai bergerak
+            // tanpa perlu pindah ke halaman Peta.
+            if (this._pickerMap) { try { this._pickerMap.remove(); } catch (e) { /* no-op */ } this._pickerMap = null; this._pickerMarker = null; }
+            this.$nextTick(() => {
+                this.renderPetaMap();
+                this.initMapDetailPengantaran(rec);
+            });
+            // Muat rute jalan sungguhan (OSRM) untuk pengantaran baru ini —
+            // async, tidak menghalangi kurir mulai bergerak. Begitu rute
+            // ketemu, jarak/ETA & garis rute di peta otomatis diperbarui.
+            this.muatRuteUntukPengantaran(rec);
+        },
+
+        // Ambil & terapkan rute jalan sungguhan (OSRM) untuk satu pengantaran.
+        // Menggantikan jarak garis-lurus (haversine) dengan jarak tempuh jalan
+        // riil begitu berhasil dimuat, dan menggeser posisi kurir yang sedang
+        // berjalan supaya tepat berada di atas jalur jalan sesuai progress
+        // yang sudah dicapai. Aman dipanggil berulang — hanya fetch sekali
+        // per pengantaran (ditandai lewat p.rute yang sudah terisi, atau
+        // p._ruteGagal kalau percobaan sebelumnya gagal).
+        async muatRuteUntukPengantaran(p) {
+            if (!p || p.rute || p._ruteGagal) return;
+            const hasil = await fetchRuteJalan(p.asal, p.tujuan);
+            if (!hasil) { p._ruteGagal = true; return; }
+            p.rute = hasil;
+            p.jarakTotalKm = hasil.jarakKm;
+            p.jarakSisaKm = Math.max(0, hasil.jarakKm * (1 - (p.progress || 0)));
+            p.etaMenit = p.kecepatanKmh > 0 ? Math.round((p.jarakSisaKm / p.kecepatanKmh) * 60) : 0;
+            if (p.status === 'proses') p.posisi = posisiSepanjangRute(hasil, p.progress || 0);
+            this.saveCoreData();
+            if (this.page === 'peta') this.renderPetaMap();
+            if (this._miniMap && this.selectedOrder && p.orderNo === this.selectedOrder.no) {
+                this.initMapDetailPengantaran(p);
+            }
+        },
+
+        // Muat rute jalan untuk semua pengantaran yang sedang aktif (dalam
+        // perjalanan / sudah tiba) sekaligus — dipanggil sekali saat aplikasi
+        // pertama kali dibuka, supaya data demo & pengantaran lama (mis. dari
+        // sesi sebelumnya yang tersimpan di localStorage) juga langsung
+        // mengikuti jalan sungguhan, bukan cuma pengantaran yang baru dibuat.
+        muatSemuaRuteAktif() {
+            this.pengantaran.forEach((p) => {
+                if (p.status === 'proses' || p.status === 'tiba') this.muatRuteUntukPengantaran(p);
+            });
         },
 
         // Dipanggil berkala (lihat init()) untuk menggerakkan setiap kurir yang
@@ -1706,22 +2025,33 @@ function app() {
                 const progress = Math.min(1, (p.progress || 0) + stepKm / totalKm);
                 p.progress = progress;
 
-                // Sedikit lengkungan pada rute (bukan garis lurus udara) supaya
-                // pergerakan kurir terasa mengikuti jalan, bukan menembus lurus.
-                const dx = p.tujuan.lng - p.asal.lng, dy = p.tujuan.lat - p.asal.lat;
-                const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                const bend = Math.sin(progress * Math.PI) * 0.0006;
-                const baseLat = p.asal.lat + dy * progress;
-                const baseLng = p.asal.lng + dx * progress;
-                p.posisi = {
-                    lat: baseLat + (dx / len) * bend,
-                    lng: baseLng - (dy / len) * bend,
-                };
+                // Kalau rute jalan sungguhan (OSRM) sudah berhasil dimuat untuk
+                // pengantaran ini, posisi kurir digeser TEPAT DI ATAS bentuk
+                // jalan sesuai progress — bukan interpolasi garis lurus udara.
+                // Kalau rute belum/tidak tersedia, pakai garis lurus asal→tujuan
+                // apa adanya sebagai cadangan (tanpa lengkungan buatan, supaya
+                // tidak menyesatkan seolah sudah mengikuti jalan padahal belum).
+                if (p.rute && p.rute.coords && p.rute.coords.length > 1) {
+                    p.posisi = posisiSepanjangRute(p.rute, progress);
+                } else {
+                    p.posisi = {
+                        lat: p.asal.lat + (p.tujuan.lat - p.asal.lat) * progress,
+                        lng: p.asal.lng + (p.tujuan.lng - p.asal.lng) * progress,
+                    };
+                }
 
                 p.jarakSisaKm = Math.max(0, totalKm * (1 - progress));
                 p.etaMenit = p.kecepatanKmh > 0 ? Math.round((p.jarakSisaKm / p.kecepatanKmh) * 60) : 0;
                 p.updatedAt = new Date(now).toISOString();
                 changed = true;
+
+                // Kalau peta mini di modalDetailOrder sedang menampilkan order
+                // yang sama, geser marker kurirnya juga secara live — supaya
+                // owner & pelanggan sama-sama melihat posisi kurir bergerak
+                // real-time tanpa perlu buka halaman Peta terpisah.
+                if (this._miniMap && this._miniKurirMarker && this.selectedOrder && p.orderNo === this.selectedOrder.no) {
+                    this._miniKurirMarker.setLatLng([p.posisi.lat, p.posisi.lng]);
+                }
 
                 if (progress >= 1) {
                     p.status = 'tiba';
@@ -1827,20 +2157,34 @@ function app() {
 
             aktif.forEach((p) => {
                 const latlng = [p.posisi.lat, p.posisi.lng];
+                const viaJalan = !!(p.rute && p.rute.coords && p.rute.coords.length > 1);
                 const popupHtml = '<b>' + p.orderNo + '</b><br>' + p.pelanggan + '<br>Kurir: ' + p.kurir +
-                    '<br>Sisa jarak: ' + p.jarakSisaKm.toFixed(1) + ' km · ETA ' + (p.etaMenit || 0) + ' menit';
+                    '<br>Sisa jarak: ' + p.jarakSisaKm.toFixed(1) + ' km · ETA ' + (p.etaMenit || 0) + ' menit' +
+                    '<br><span style="font-size:11px;color:#64748B;">' + (viaJalan ? 'Mengikuti rute jalan' : 'Estimasi garis lurus (rute jalan belum ditemukan)') + '</span>';
                 if (!this._markersKurir[p.id]) {
                     this._markersKurir[p.id] = L.marker(latlng, { icon: this._kurirIcon }).addTo(this._map).bindPopup(popupHtml);
                     this._markersTujuan[p.id] = L.marker([p.tujuan.lat, p.tujuan.lng], { icon: this._tujuanIcon })
                         .addTo(this._map)
                         .bindPopup('<b>Tujuan</b><br>' + (p.tujuan.label || p.pelanggan));
+                } else {
+                    this._markersKurir[p.id].setLatLng(latlng);
+                    this._markersKurir[p.id].setPopupContent(popupHtml);
+                }
+                // Gambar ulang garis rute setiap render — begitu rute jalan
+                // sungguhan (OSRM) selesai dimuat secara async, garis putus-
+                // putus lurus otomatis berganti jadi jalur jalan solid & akurat
+                // tanpa perlu menunggu render/refresh berikutnya.
+                if (this._garisRute[p.id]) { this._map.removeLayer(this._garisRute[p.id]); }
+                if (viaJalan) {
+                    this._garisRute[p.id] = L.polyline(
+                        p.rute.coords.map(c => [c.lat, c.lng]),
+                        { color: '#C2141A', weight: 4, opacity: 0.8, lineJoin: 'round' }
+                    ).addTo(this._map);
+                } else {
                     this._garisRute[p.id] = L.polyline(
                         [[p.asal.lat, p.asal.lng], [p.tujuan.lat, p.tujuan.lng]],
                         { color: '#C2141A', weight: 3, dashArray: '2 8', opacity: 0.55 }
                     ).addTo(this._map);
-                } else {
-                    this._markersKurir[p.id].setLatLng(latlng);
-                    this._markersKurir[p.id].setPopupContent(popupHtml);
                 }
                 if (this.petaFokusId === p.id) {
                     this._map.panTo(latlng, { animate: true });
@@ -1859,9 +2203,207 @@ function app() {
             }
         },
 
-        viewOrder(o) { this.selectedOrder = o; this.kirimPanelOpen = false; this.kirimError = ''; },
+        // ============================================================
+        // PETA DI MODAL DETAIL ORDER — dipakai OWNER & PELANGGAN sekaligus,
+        // supaya lokasi pengantaran selalu terlihat & sinkron di kedua sisi.
+        // ============================================================
+
+        // Peta mini READ-ONLY di modalDetailOrder: menampilkan titik toko,
+        // posisi kurir saat ini, dan titik tujuan untuk pengantaran yang
+        // sedang berjalan/sudah tiba/sudah selesai. Dipakai baik oleh Owner
+        // maupun Pelanggan — datanya sama persis (satu record `pengantaran`),
+        // jadi otomatis konsisten di kedua dashboard.
+        initMapDetailPengantaran(p) {
+            const container = document.getElementById('mapDetailPengantaran');
+            if (!container || typeof L === 'undefined' || !p) return;
+            if (this._miniMap) { try { this._miniMap.remove(); } catch (e) { /* no-op */ } this._miniMap = null; this._miniKurirMarker = null; }
+            this._miniMap = L.map(container, { zoomControl: false, attributionControl: false, scrollWheelZoom: false })
+                .setView([p.posisi.lat, p.posisi.lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._miniMap);
+            L.marker([p.asal.lat, p.asal.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [24, 24], iconAnchor: [12, 22] }),
+                interactive: false,
+            }).addTo(this._miniMap);
+            L.marker([p.tujuan.lat, p.tujuan.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [26, 26], iconAnchor: [13, 26] }),
+            }).addTo(this._miniMap).bindPopup(p.tujuan.label || p.pelanggan);
+            this._miniKurirMarker = L.marker([p.posisi.lat, p.posisi.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-kurir">🛵</div>', iconSize: [26, 26], iconAnchor: [13, 24] }),
+            }).addTo(this._miniMap);
+            const viaJalan = !!(p.rute && p.rute.coords && p.rute.coords.length > 1);
+            let boundsPts;
+            if (viaJalan) {
+                L.polyline(p.rute.coords.map(c => [c.lat, c.lng]), { color: '#C2141A', weight: 4, opacity: 0.8, lineJoin: 'round' }).addTo(this._miniMap);
+                boundsPts = p.rute.coords.map(c => [c.lat, c.lng]);
+            } else {
+                L.polyline([[p.asal.lat, p.asal.lng], [p.tujuan.lat, p.tujuan.lng]], { color: '#C2141A', weight: 3, dashArray: '2 8', opacity: 0.5 }).addTo(this._miniMap);
+                boundsPts = [[p.asal.lat, p.asal.lng], [p.tujuan.lat, p.tujuan.lng], [p.posisi.lat, p.posisi.lng]];
+            }
+            this._miniMap.fitBounds(boundsPts, { padding: [24, 24] });
+            setTimeout(() => { if (this._miniMap) this._miniMap.invalidateSize(); }, 120);
+        },
+
+        // Peta EDITABLE di modalDetailOrder khusus akun Pelanggan: memungkinkan
+        // pelanggan menandai/memperbarui sendiri titik lokasi pengantarannya
+        // (mis. sebelum order selesai diproduksi / sebelum owner kirim kurir).
+        // Titik ini ditulis ke `customer.koordinat` — field YANG SAMA yang
+        // dibaca bukaFormKirim() di sisi Owner sebagai pra-isi peta pemilihan
+        // lokasi — sehingga begitu pelanggan menyimpan lokasinya di sini,
+        // dashboard Owner otomatis melihat titik yang sama tanpa perlu
+        // sinkronisasi tambahan (satu sumber data: this.customers).
+        initLokasiPelangganMap() {
+            const container = document.getElementById('mapLokasiPelanggan');
+            if (!container || typeof L === 'undefined') return;
+            if (this._plgMap) { try { this._plgMap.remove(); } catch (e) { /* no-op */ } this._plgMap = null; this._plgMarker = null; }
+            const c = this.myCustomer;
+            const sudahAda = !!(c && c.koordinat && typeof c.koordinat.lat === 'number');
+            const start = sudahAda ? c.koordinat : TOKO_LOKASI;
+            this._plgMap = L.map(container, { zoomControl: true, attributionControl: false })
+                .setView([start.lat, start.lng], sudahAda ? 15 : 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._plgMap);
+            L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [24, 24], iconAnchor: [12, 22] }),
+                interactive: false,
+            }).addTo(this._plgMap);
+            this._plgLokasiPending = sudahAda ? { lat: start.lat, lng: start.lng } : null;
+            if (sudahAda) {
+                const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+                this._plgMarker = L.marker([start.lat, start.lng], { icon: tujuanIcon, draggable: true }).addTo(this._plgMap);
+                this._plgMarker.on('dragend', () => {
+                    const ll = this._plgMarker.getLatLng();
+                    this._plgLokasiPending = { lat: ll.lat, lng: ll.lng };
+                });
+            }
+            this._plgMap.on('click', (e) => this.setLokasiPelangganPin(e.latlng.lat, e.latlng.lng));
+            setTimeout(() => { if (this._plgMap) this._plgMap.invalidateSize(); }, 120);
+        },
+
+        setLokasiPelangganPin(lat, lng) {
+            this._plgLokasiPending = { lat, lng };
+            if (!this._plgMap) return;
+            const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+            if (!this._plgMarker) {
+                this._plgMarker = L.marker([lat, lng], { icon: tujuanIcon, draggable: true }).addTo(this._plgMap);
+                this._plgMarker.on('dragend', () => {
+                    const ll = this._plgMarker.getLatLng();
+                    this._plgLokasiPending = { lat: ll.lat, lng: ll.lng };
+                });
+            } else {
+                this._plgMarker.setLatLng([lat, lng]);
+            }
+            this._plgMap.panTo([lat, lng], { animate: true });
+        },
+
+        gunakanLokasiSayaPelanggan() {
+            if (!navigator.geolocation) { this.toast('⚠️ Perangkat ini tidak mendukung deteksi lokasi GPS.'); return; }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.setLokasiPelangganPin(pos.coords.latitude, pos.coords.longitude);
+                    if (this._plgMap) this._plgMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                },
+                () => { this.toast('⚠️ Gagal mengambil lokasi GPS. Tandai manual saja di peta.'); },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        },
+
+        // Menyimpan titik yang ditandai pelanggan ke data pelanggan permanen
+        // (this.customers, ikut tersimpan lewat CORE_DATA_FIELDS) — inilah
+        // titik yang otomatis dipakai Owner di form "Kirim untuk Diantar".
+        simpanLokasiPelanggan() {
+            if (!this.myCustomer) return;
+            if (!this._plgLokasiPending) { this.toast('⚠️ Tandai dulu titik lokasi Anda di peta (klik di peta).'); return; }
+            this.myCustomer.koordinat = { lat: this._plgLokasiPending.lat, lng: this._plgLokasiPending.lng };
+            this.saveCoreData();
+            this.toast('📍 Lokasi pengantaran Anda tersimpan & akan otomatis dipakai kurir.');
+        },
+
+        // ---------- peta lokasi pengantaran di modal "Buat Order Baru" ----------
+        // Sama persis polanya dengan initLokasiPelangganMap() di modalDetailOrder,
+        // hanya beda container & momen tampil: di sini pelanggan menandai lokasinya
+        // SEJAK AWAL saat memesan, bukan menunggu order berstatus "selesai". Titik
+        // yang ditandai di sini ditulis ke customer.koordinat saat order disimpan
+        // (lihat simpanOrder()) — field YANG SAMA yang dibaca otomatis oleh Owner
+        // di bukaFormKirim(), jadi tidak perlu ada langkah sinkronisasi tambahan.
+        initLokasiOrderBaruMap() {
+            const container = document.getElementById('mapLokasiOrderBaru');
+            if (!container || typeof L === 'undefined') return;
+            if (this._orderBaruMap) { try { this._orderBaruMap.remove(); } catch (e) { /* no-op */ } this._orderBaruMap = null; this._orderBaruMarker = null; }
+            const c = this.myCustomer;
+            const sudahAda = !!(c && c.koordinat && typeof c.koordinat.lat === 'number');
+            const start = sudahAda ? c.koordinat : TOKO_LOKASI;
+            this._orderBaruMap = L.map(container, { zoomControl: true, attributionControl: false })
+                .setView([start.lat, start.lng], sudahAda ? 15 : 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._orderBaruMap);
+            L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
+                icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [24, 24], iconAnchor: [12, 22] }),
+                interactive: false,
+            }).addTo(this._orderBaruMap);
+            this._orderBaruLokasiPending = sudahAda ? { lat: start.lat, lng: start.lng } : null;
+            if (sudahAda) {
+                const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+                this._orderBaruMarker = L.marker([start.lat, start.lng], { icon: tujuanIcon, draggable: true }).addTo(this._orderBaruMap);
+                this._orderBaruMarker.on('dragend', () => {
+                    const ll = this._orderBaruMarker.getLatLng();
+                    this._orderBaruLokasiPending = { lat: ll.lat, lng: ll.lng };
+                });
+            }
+            this._orderBaruMap.on('click', (e) => this.setLokasiOrderBaruPin(e.latlng.lat, e.latlng.lng));
+            setTimeout(() => { if (this._orderBaruMap) this._orderBaruMap.invalidateSize(); }, 120);
+        },
+
+        setLokasiOrderBaruPin(lat, lng) {
+            this._orderBaruLokasiPending = { lat, lng };
+            if (!this._orderBaruMap) return;
+            const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
+            if (!this._orderBaruMarker) {
+                this._orderBaruMarker = L.marker([lat, lng], { icon: tujuanIcon, draggable: true }).addTo(this._orderBaruMap);
+                this._orderBaruMarker.on('dragend', () => {
+                    const ll = this._orderBaruMarker.getLatLng();
+                    this._orderBaruLokasiPending = { lat: ll.lat, lng: ll.lng };
+                });
+            } else {
+                this._orderBaruMarker.setLatLng([lat, lng]);
+            }
+            this._orderBaruMap.panTo([lat, lng], { animate: true });
+        },
+
+        gunakanLokasiSayaOrderBaru() {
+            if (!navigator.geolocation) { this.toast('⚠️ Perangkat ini tidak mendukung deteksi lokasi GPS.'); return; }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.setLokasiOrderBaruPin(pos.coords.latitude, pos.coords.longitude);
+                    if (this._orderBaruMap) this._orderBaruMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                },
+                () => { this.toast('⚠️ Gagal mengambil lokasi GPS. Tandai manual saja di peta.'); },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        },
+
+        viewOrder(o) {
+            this.selectedOrder = o;
+            this.kirimPanelOpen = false;
+            this.kirimError = '';
+            this._plgLokasiPending = null;
+            // Bersihkan peta modal sebelumnya (kalau ada) supaya tidak
+            // menumpuk saat berpindah-pindah antar order.
+            if (this._miniMap) { try { this._miniMap.remove(); } catch (e) { /* no-op */ } this._miniMap = null; this._miniKurirMarker = null; }
+            if (this._plgMap) { try { this._plgMap.remove(); } catch (e) { /* no-op */ } this._plgMap = null; this._plgMarker = null; }
+            this.$nextTick(() => {
+                const p = this.pengantaranForOrder(o.no);
+                if (p && p.status !== 'batal') {
+                    // Ada pengantaran aktif/selesai untuk order ini → tampilkan
+                    // peta pelacakan read-only (berlaku utk Owner & Pelanggan).
+                    this.initMapDetailPengantaran(p);
+                } else if (this.loginRole === 'Pelanggan') {
+                    // Belum ada pengantaran → beri pelanggan kesempatan
+                    // menandai/menyiapkan lokasi pengantarannya lebih awal.
+                    this.initLokasiPelangganMap();
+                }
+            });
+        },
         viewCustomer(c) { this.selectedCustomer = c; },
         viewDesign(d) { this.selectedDesign = d; },
+
 
         init() {
             // Simpan salinan data demo bawaan (sebelum ditimpa oleh data tersimpan)
@@ -1919,6 +2461,32 @@ function app() {
                         document.activeElement.blur();
                     }
                 }
+                // Hancurkan instance peta di dalam modalDetailOrder setiap kali
+                // modal ini ditutup, supaya Leaflet tidak di-init dobel di atas
+                // container yang sama saat modal dibuka lagi utk order lain.
+                if (e.target && e.target.id === 'modalDetailOrder') {
+                    if (this._miniMap) { try { this._miniMap.remove(); } catch (err) { /* no-op */ } this._miniMap = null; this._miniKurirMarker = null; }
+                    if (this._plgMap) { try { this._plgMap.remove(); } catch (err) { /* no-op */ } this._plgMap = null; this._plgMarker = null; }
+                    if (this._pickerMap) { try { this._pickerMap.remove(); } catch (err) { /* no-op */ } this._pickerMap = null; this._pickerMarker = null; }
+                    this.kirimPanelOpen = false;
+                }
+                // Bersihkan juga peta lokasi di modal "Buat Order Baru" setiap
+                // kali modal itu ditutup (Batal, klik luar, atau setelah order
+                // berhasil disimpan) supaya Leaflet tidak di-init dobel di atas
+                // container yang sama saat modal dibuka lagi.
+                if (e.target && e.target.id === 'modalOrderBaru') {
+                    if (this._orderBaruMap) { try { this._orderBaruMap.remove(); } catch (err) { /* no-op */ } this._orderBaruMap = null; this._orderBaruMarker = null; }
+                }
+            });
+
+            // Inisialisasi peta lokasi pengantaran begitu modal "Buat Order
+            // Baru" selesai tampil (baru bisa diukur/di-render setelah modal
+            // benar-benar terlihat) — khusus akun Pelanggan, karena Owner/staff
+            // memilih pelanggan dari dropdown tanpa perlu menandai lokasi di sini.
+            document.addEventListener('shown.bs.modal', (e) => {
+                if (e.target && e.target.id === 'modalOrderBaru' && this.loginRole === 'Pelanggan') {
+                    this.$nextTick(() => this.initLokasiOrderBaruMap());
+                }
             });
 
             this.$watch('page', () => setTimeout(() => this.renderCharts(), 120));
@@ -1942,6 +2510,11 @@ function app() {
             // berstatus 'proses' bergerak sedikit lebih dekat ke tujuannya.
             this.tickPengantaran();
             this._pengantaranTimer = setInterval(() => this.tickPengantaran(), 3000);
+            // Muat rute jalan sungguhan (OSRM) untuk seluruh pengantaran yang
+            // sudah aktif sejak awal (data demo, atau data lama dari sesi
+            // sebelumnya) supaya peta langsung menampilkan jalur jalan yang
+            // sesungguhnya, bukan garis lurus, begitu halaman dibuka.
+            this.muatSemuaRuteAktif();
         },
 
         // ============================================================
@@ -2056,13 +2629,13 @@ function app() {
                 ctaLead: 'Kirim ukuran dan bahan yang Anda mau lewat WhatsApp — tim kami balas dalam hitungan menit di jam kerja.',
                 // Hero Visual / Banner Preview (slideshow — bisa lebih dari 1 foto)
                 heroBannerGaleri: [
-                    'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
-                    'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
-                    'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80',
+                    'asset/img/banner-ticket/ticket-1.jpeg',
+                    'asset/img/banner-ticket/ticket-6.jpeg',
+                    'asset/img/banner-ticket/ticket-4.jpeg',
                 ],
                 heroBannerInterval: 3.5, // detik antar-slide
                 // heroBannerGambar dipertahankan (deprecated) hanya utk kompatibilitas data lama
-                heroBannerGambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
+                heroBannerGambar: 'asset/img/banner-ticket/ticket-1.jpeg',
                 heroBannerTag: 'JOB #0150 · IN PRODUCTION',
                 heroBannerJudul: 'TOKO SINAR BALIHO',
                 heroBannerSub: 'Grand Opening · Waghete',
@@ -2085,12 +2658,12 @@ function app() {
                 statTahun: 6,
                 // Galeri (portfolio)
                 galeri: [
-                    { id: 1, nama: 'Toko Sinar Baliho', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#FF6B2C,#E5551A)' },
-                    { id: 2, nama: 'GKI Immanuel', jenis: 'SPANDUK UCAPAN · 1×2M', gambar: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#0F6E6E,#0B5555)' },
-                    { id: 3, nama: 'Dinas Pariwisata', jenis: 'BANNER ROLL UP · PAMERAN', gambar: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#7C5CFC,#5B3FE0)' },
-                    { id: 4, nama: 'Koperasi Cendrawasih Maju', jenis: 'BALIHO FLEXI · 2×3M', gambar: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#F4A100,#C97F00)' },
-                    { id: 5, nama: 'CV Papua Digital Print', jenis: 'STIKER KEMASAN · CUTTING', gambar: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#2A9D6B,#1F7A53)' },
-                    { id: 6, nama: 'Event Sentani', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80', warna: 'linear-gradient(155deg,#E63946,#B91C2B)' },
+                    { id: 1, nama: 'Toko Sinar Baliho', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'asset/img/gallery/gallery-1.jpeg', warna: 'linear-gradient(155deg,#FF6B2C,#E5551A)' },
+                    { id: 2, nama: 'GKI Immanuel', jenis: 'SPANDUK UCAPAN · 1×2M', gambar: 'asset/img/gallery/gallery-2.jpeg', warna: 'linear-gradient(155deg,#0F6E6E,#0B5555)' },
+                    { id: 3, nama: 'Dinas Pariwisata', jenis: 'BANNER ROLL UP · PAMERAN', gambar: 'asset/img/gallery/gallery-3.png', warna: 'linear-gradient(155deg,#7C5CFC,#5B3FE0)' },
+                    { id: 4, nama: 'Koperasi Cendrawasih Maju', jenis: 'BALIHO FLEXI · 2×3M', gambar: 'asset/img/gallery/gallery-4.png', warna: 'linear-gradient(155deg,#F4A100,#C97F00)' },
+                    { id: 5, nama: 'CV Papua Digital Print', jenis: 'STIKER KEMASAN · CUTTING', gambar: 'asset/img/gallery/gallery-5.jpeg', warna: 'linear-gradient(155deg,#2A9D6B,#1F7A53)' },
+                    { id: 6, nama: 'Event Sentani', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'asset/img/gallery/gallery-6.jpeg', warna: 'linear-gradient(155deg,#E63946,#B91C2B)' },
                 ],
                 // Testimoni
                 testimoni: [
@@ -2113,11 +2686,11 @@ function app() {
         landingSettings: null, // diisi oleh loadLandingSettings() di init()
 
         heroBannerPresets: [
-            { label: 'Toko Sinar Baliho', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Event Sentani', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Spanduk Koperasi', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Gereja Immanuel', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Dinas Pariwisata', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Toko Sinar Baliho', url: 'asset/img/banner-ticket/ticket-1.jpeg' },
+            { label: 'Event Sentani', url: 'asset/img/banner-ticket/ticket-6.jpeg' },
+            { label: 'Spanduk Koperasi', url: 'asset/img/banner-ticket/ticket-4.jpeg' },
+            { label: 'Gereja Immanuel', url: 'asset/img/banner-ticket/ticket-2.jpg' },
+            { label: 'Dinas Pariwisata', url: 'asset/img/banner-ticket/ticket-3.jpeg' },
         ],
 
         heroBannerMax: 6, // batas jumlah slide di banner preview
@@ -2499,14 +3072,14 @@ function app() {
         _galeriError: '',
 
         galeriPresets: [
-            { label: 'Baliho Outdoor Flexi', url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Spanduk Vinyl Ucapan', url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Banner Roll Up Pameran', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Baliho Billboard Jalan', url: 'https://images.unsplash.com/photo-1508873696983-2df57046475a?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Stiker Cutting & Kemasan', url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Panggung & Backdrop Event', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Signage & Neon Box', url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80' },
-            { label: 'Promosi Toko Retail', url: 'https://images.unsplash.com/photo-1555421689-491a97ff2040?auto=format&fit=crop&w=800&q=80' },
+            { label: 'Baliho Outdoor Flexi', url: 'asset/img/gallery/gallery-1.jpeg' },
+            { label: 'Spanduk Vinyl Ucapan', url: 'asset/img/gallery/gallery-2.jpeg' },
+            { label: 'Banner Roll Up Pameran', url: 'asset/img/gallery/gallery-3.png' },
+            { label: 'Baliho Billboard Jalan', url: 'asset/img/gallery/gallery-4.png' },
+            { label: 'Stiker Cutting & Kemasan', url: 'asset/img/gallery/gallery-5.jpeg' },
+            { label: 'Panggung & Backdrop Event', url: 'asset/img/gallery/gallery-6.jpeg' },
+            { label: 'Signage & Neon Box', url: 'asset/img/banner-ticket/ticket-5.png' },
+            { label: 'Promosi Toko Retail', url: 'asset/img/banner-ticket/ticket-6.jpeg' },
         ],
 
         get filteredGaleri() {
@@ -2549,7 +3122,7 @@ function app() {
                 id: null,
                 nama: '',
                 jenis: 'BALIHO FLEXI · 3×4M',
-                gambar: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80',
+                gambar: 'asset/img/gallery/gallery-1.jpeg',
                 warna: 'linear-gradient(155deg,#C2141A,#971014)'
             };
             this._galeriEdit = false;

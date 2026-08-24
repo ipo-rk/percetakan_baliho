@@ -347,7 +347,8 @@ nav.links a:hover {
 .hero {
   position: relative;
   overflow: hidden;
-  background: var(--ink);
+  background: var(--ink) url("../img/hero/hero-1.png") center 35% / cover
+    no-repeat;
   color: #fff;
   padding: 0 0 4.5rem;
 }
@@ -359,13 +360,19 @@ nav.links a:hover {
   background:
     radial-gradient(
       60% 55% at 88% 8%,
-      rgba(194, 20, 26, 0.28),
+      rgba(194, 20, 26, 0.32),
       transparent 60%
     ),
     radial-gradient(
       45% 40% at 4% 92%,
-      rgba(15, 110, 110, 0.35),
+      rgba(15, 110, 110, 0.4),
       transparent 65%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(11, 27, 61, 0.88) 0%,
+      rgba(11, 27, 61, 0.76) 42%,
+      rgba(11, 27, 61, 0.93) 100%
     );
   pointer-events: none;
 }
@@ -1160,7 +1167,16 @@ nav.links a:hover {
 
 /* ================= PRICING NOTE ================= */
 .price-band {
-  background: var(--canvas-soft);
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(244, 242, 236, 0.92) 0%,
+      rgba(244, 242, 236, 0.88) 50%,
+      rgba(244, 242, 236, 0.95) 100%
+    ),
+    url("../img/hero/hero-2.png") center / cover no-repeat;
+  background-color: var(--canvas-soft);
   border-top: 1px solid var(--paper-line);
   border-bottom: 1px solid var(--paper-line);
 }

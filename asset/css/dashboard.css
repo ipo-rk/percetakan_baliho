@@ -50,6 +50,52 @@ body {
   overscroll-behavior: contain;
 }
 
+/* =======================================================
+   FIX: modal detail (Order / Pelanggan / Desain) tidak bisa
+   discroll naik-turun.
+   ---------------------------------------------------------
+   Ketiga modal ini membungkus isinya dengan
+   <template x-if="..."><div> ... </div></template> (Alpine),
+   supaya konten hanya dirender saat ada data terpilih. Akibatnya
+   .modal-header/.modal-body/.modal-footer TIDAK LAGI menjadi anak
+   langsung dari .modal-content, melainkan anak dari <div> pembungkus
+   tsb — ini merusak layout flex-column bawaan Bootstrap untuk
+   .modal-dialog-scrollable (yang mengandalkan .modal-body sebagai
+   anak langsung .modal-content agar bisa flex-shrink & scroll).
+   <div> pembungkus jadi punya tinggi "auto" mengikuti kontennya,
+   lalu terpotong begitu saja oleh overflow:hidden di .modal-content
+   — bukan discroll.
+   Perbaikan: jadikan <div> pembungkus itu sendiri ber-flex-column
+   & flex:1 1 auto dengan min-height:0 (supaya boleh menyusut di
+   dalam .modal-content yang tingginya dibatasi), lalu pastikan
+   .modal-body tetap flex:1 1 auto + min-height:0 + overflow-y:auto
+   agar scroll internal benar-benar aktif.
+======================================================= */
+#modalDetailOrder .modal-dialog-scrollable .modal-content > div,
+#modalDetailPelanggan .modal-dialog-scrollable .modal-content > div,
+#modalDetailDesain .modal-dialog-scrollable .modal-content > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+#modalDetailOrder .modal-dialog-scrollable .modal-body,
+#modalDetailPelanggan .modal-dialog-scrollable .modal-body,
+#modalDetailDesain .modal-dialog-scrollable .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ---------- Peta lokasi pengantaran di modal "Buat Order Baru" (Pelanggan) ---------- */
+#mapLokasiOrderBaru {
+  z-index: 0;
+}
+
 [x-cloak] {
   display: none !important;
 }

@@ -2365,6 +2365,30 @@
                                 x-text="myCustomer ? myCustomer.nama : '—'"></div>
                         </div>
 
+                        <!-- PELANGGAN: tandai lokasi pengantaran saat pemesanan dibuat.
+                             Titik ini langsung ditulis ke customer.koordinat — field YANG
+                             SAMA yang dibaca otomatis oleh Owner di modal Detail Order
+                             (tombol "Kirim untuk Diantar" → bukaFormKirim()) sehingga saat
+                             order ini nanti siap diantar, lokasi tujuan SUDAH terisi
+                             otomatis tanpa perlu dipilih ulang oleh Owner/kurir. -->
+                        <div class="sm:col-span-2" x-show="loginRole==='Pelanggan'" x-cloak>
+                            <label class="field-label">Lokasi Pengantaran</label>
+                            <p class="text-[11px] text-steel mb-2">Tandai titik lokasi Anda di peta (klik peta,
+                                seret pin, atau pakai tombol lokasi GPS). Titik ini akan otomatis dipakai kurir
+                                saat pesanan ini siap diantar — Anda tidak perlu memilihnya lagi nanti.</p>
+                            <div id="mapLokasiOrderBaru" class="rounded-lg overflow-hidden hide-scrollbar"
+                                style="height:200px;width:100%;"></div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
+                                <button type="button" @click="gunakanLokasiSayaOrderBaru()"
+                                    class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
+                                    🎯 Pakai Lokasi Saya Sekarang
+                                </button>
+                                <p class="text-[10px]" :class="_orderBaruLokasiPending ? 'text-green' : 'text-steel'"
+                                    x-text="_orderBaruLokasiPending ? '📍 Lokasi sudah ditandai & akan tersimpan bersama order ini.' : 'Belum ada titik ditandai — memakai lokasi tersimpan sebelumnya (jika ada).'">
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="sm:col-span-2">
                             <label class="field-label">Jenis Cetakan</label>
                             <select x-model="formOrder.jenis" class="input-field bg-white">
@@ -2519,9 +2543,14 @@
                                 <div class="mb-4">
                                     <div class="text-xs text-steel mb-1.5">Status Pengantaran</div>
 
+                                    <!-- Sudah ada pengantaran (aktif/tiba/selesai) untuk order ini —
+                                         peta pelacakan READ-ONLY ini sama persis dilihat Owner maupun
+                                         Pelanggan, karena datanya berasal dari satu record pengantaran
+                                         yang sama (this.pengantaran), bukan disalin/diduplikasi. -->
                                     <template
                                         x-if="pengantaranForOrder(selectedOrder.no) && pengantaranForOrder(selectedOrder.no).status!=='batal'">
-                                        <div class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] mb-2">
+                                        <div
+                                            class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] mb-2 space-y-2">
                                             <template
                                                 x-if="['proses','tiba'].includes(pengantaranForOrder(selectedOrder.no).status)">
                                                 <div>
@@ -2531,8 +2560,8 @@
                                                                 x-text="pengantaranForOrder(selectedOrder.no).kurir"></span>
                                                         </span>
                                                         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                                                            :class="pengantaranForOrder(selectedOrder.no).status==='tiba' ? 'bg-amber-light text-amber' : 'bg-green-light text-green'"
-                                                            x-text="pengantaranForOrder(selectedOrder.no).status==='tiba' ? 'Tiba di Tujuan' : 'Dalam Perjalanan'"></span>
+                                                            :class="statusAntarBadge(selectedOrder.no).cls"
+                                                            x-text="statusAntarBadge(selectedOrder.no).label"></span>
                                                     </div>
                                                     <div
                                                         class="h-1.5 rounded-full bg-black/[0.08] overflow-hidden mb-1.5">
@@ -2542,8 +2571,7 @@
                                                     </div>
                                                     <div
                                                         class="flex items-center justify-between text-[11px] text-steel gap-2">
-                                                        <span
-                                                            x-text="pengantaranForOrder(selectedOrder.no).jarakSisaKm.toFixed(1) + ' km lagi · diperbarui ' + relatif(pengantaranForOrder(selectedOrder.no).updatedAt)"></span>
+                                                        <span x-text="labelStatusAntar(selectedOrder.no)"></span>
                                                         <button type="button"
                                                             @click="focusPeta(pengantaranForOrder(selectedOrder.no))"
                                                             class="text-primary font-medium hover:underline whitespace-nowrap">Lihat
@@ -2558,33 +2586,104 @@
                                                         x-text="relatif(pengantaranForOrder(selectedOrder.no).updatedAt)"></span>
                                                 </div>
                                             </template>
+                                            <!-- Peta mini: titik toko, posisi kurir (live), & titik tujuan -->
+                                            <div id="mapDetailPengantaran"
+                                                class="rounded-lg overflow-hidden hide-scrollbar"
+                                                style="height:200px;width:100%;"></div>
+                                            <p class="text-[10px] text-steel"
+                                                x-text="'Tujuan: ' + (pengantaranForOrder(selectedOrder.no).tujuan.label || selectedOrder.pelanggan)">
+                                            </p>
                                         </div>
                                     </template>
 
                                     <template x-if="canKirim(selectedOrder)">
                                         <div>
-                                            <button type="button" x-show="!kirimPanelOpen" @click="bukaFormKirim()"
-                                                class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-inksoft text-white hover:opacity-90 flex items-center gap-1.5">
-                                                🛵 Kirim untuk Diantar
-                                            </button>
-                                            <div x-show="kirimPanelOpen" x-cloak
-                                                class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] space-y-2">
-                                                <label class="field-label">Pilih Kurir</label>
-                                                <select x-model="formKirim.kurir" class="input-field text-sm">
-                                                    <template x-for="k in kurirAktif" :key="k.nama">
-                                                        <option :value="k.nama" x-text="k.nama + ' — ' + k.kendaraan">
-                                                        </option>
-                                                    </template>
-                                                </select>
-                                                <p class="field-error" x-show="kirimError" x-text="kirimError"></p>
-                                                <div class="flex gap-2 justify-end pt-1">
-                                                    <button type="button" @click="tutupFormKirim()"
-                                                        class="text-xs text-steel px-3 py-2">Batal</button>
-                                                    <button type="button" @click="prosesKirim()"
-                                                        class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-primary text-white">Kirim
-                                                        Sekarang</button>
+                                            <!-- OWNER/STAFF: memicu pengantaran + memilih/mengonfirmasi
+                                                 titik lokasi tujuan lewat peta interaktif sebelum kurir
+                                                 berangkat. Pelanggan tidak melihat tombol ini — pengiriman
+                                                 kurir tetap keputusan toko, bukan pelanggan. -->
+                                            <template x-if="loginRole!=='Pelanggan'">
+                                                <div>
+                                                    <button type="button" x-show="!kirimPanelOpen"
+                                                        @click="bukaFormKirim()"
+                                                        class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-inksoft text-white hover:opacity-90 flex items-center gap-1.5">
+                                                        🛵 Kirim untuk Diantar
+                                                    </button>
+                                                    <div x-show="kirimPanelOpen" x-cloak
+                                                        class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] space-y-2">
+                                                        <label class="field-label">Pilih Kurir</label>
+                                                        <select x-model="formKirim.kurir" class="input-field text-sm">
+                                                            <template x-for="k in kurirAktif" :key="k.nama">
+                                                                <option :value="k.nama"
+                                                                    x-text="k.nama + ' — ' + k.kendaraan">
+                                                                </option>
+                                                            </template>
+                                                        </select>
+
+                                                        <label class="field-label">Alamat Tujuan (opsional — untuk
+                                                            label popup di peta)</label>
+                                                        <input type="text" x-model="formKirim.alamatTujuan"
+                                                            class="input-field text-sm"
+                                                            placeholder="mis. Jl. Trans Papua No. 12, Waghete">
+
+                                                        <label class="field-label">Titik Lokasi Pengantaran — klik di
+                                                            peta untuk menandai, atau seret pin untuk
+                                                            menggeser</label>
+                                                        <div id="mapPilihLokasi" class="rounded-lg overflow-hidden"
+                                                            style="height:220px;width:100%;"></div>
+                                                        <div class="flex flex-wrap gap-2 pt-1">
+                                                            <button type="button" @click="gunakanLokasiTersimpan()"
+                                                                class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
+                                                                📌 Pakai Lokasi Tersimpan Pelanggan
+                                                            </button>
+                                                            <button type="button" @click="gunakanLokasiSaya()"
+                                                                class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
+                                                                🎯 Pakai Lokasi Saya Sekarang
+                                                            </button>
+                                                        </div>
+                                                        <p class="text-[10px]"
+                                                            :class="formKirim.lokasiTujuan ? 'text-green' : 'text-steel'"
+                                                            x-text="formKirim.lokasiTujuan ? '📍 Lokasi tujuan sudah ditandai.' : 'Belum ada lokasi ditandai — klik di peta di atas.'">
+                                                        </p>
+                                                        <p class="field-error" x-show="kirimError" x-text="kirimError">
+                                                        </p>
+                                                        <div class="flex gap-2 justify-end pt-1">
+                                                            <button type="button" @click="tutupFormKirim()"
+                                                                class="text-xs text-steel px-3 py-2">Batal</button>
+                                                            <button type="button" @click="prosesKirim()"
+                                                                class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-primary text-white">Kirim
+                                                                Sekarang</button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </template>
+
+                                            <!-- PELANGGAN: order sudah siap, kurir belum berangkat. Beri
+                                                 kesempatan menandai lokasi pengantaran lebih awal — titik ini
+                                                 disimpan ke data pelanggan (customer.koordinat) sehingga
+                                                 begitu Owner membuka "Kirim untuk Diantar", peta pemilihan
+                                                 lokasi di atas otomatis sudah terisi dengan titik yang sama. -->
+                                            <template x-if="loginRole==='Pelanggan'">
+                                                <div
+                                                    class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] space-y-2">
+                                                    <p class="text-xs text-steel">📦 Pesanan Anda sudah siap &
+                                                        menunggu kurir berangkat. Tandai lokasi pengantaran Anda di
+                                                        peta ini supaya kurir langsung tahu tujuannya.</p>
+                                                    <div id="mapLokasiPelanggan" class="rounded-lg overflow-hidden"
+                                                        style="height:220px;width:100%;"></div>
+                                                    <div class="flex flex-wrap gap-2 pt-1">
+                                                        <button type="button" @click="gunakanLokasiSayaPelanggan()"
+                                                            class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
+                                                            🎯 Pakai Lokasi Saya Sekarang
+                                                        </button>
+                                                    </div>
+                                                    <div class="flex justify-end pt-1">
+                                                        <button type="button" @click="simpanLokasiPelanggan()"
+                                                            class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-primary text-white">Simpan
+                                                            Lokasi Pengantaran</button>
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </div>

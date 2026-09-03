@@ -1,0 +1,99 @@
+erDiagram
+    CUSTOMER ||--o{ ORDER : "melakukan"
+    ORDER ||--o| DESIGN : "memiliki"
+    ORDER ||--o{ PAYMENT : "dibayar lewat"
+    ORDER ||--o| PENGANTARAN : "dikirim via"
+    DRIVER ||--o{ PENGANTARAN : "mengantar"
+    USER ||--o{ ORDER : "memproses"
+    STOK ||--o{ ORDER : "digunakan dalam"
+
+    CUSTOMER {
+        int id PK "Auto-increment Integer"
+        string nama "Nama Pelanggan"
+        string hp "Nomor WhatsApp"
+        string alamat "Alamat Domisili"
+        string instansi "Perusahaan / Instansi"
+        object koordinat "{lat, lng} Titik Peta"
+    }
+
+    ORDER {
+        string no PK "Format: ORD-YYYY-NNNN"
+        string pelanggan "Nama Relasi Pelanggan"
+        string jenis "Baliho Flexi, Spanduk, dll"
+        string ukuran "Contoh: 3x4 m"
+        int jumlah "Kuantitas Pesanan"
+        int total "Nilai Transaksi (Rp)"
+        int dp "Uang Muka (Rp)"
+        int sisa "Sisa Tagihan (Rp)"
+        date deadline "Tenggat Waktu Selesai"
+        string catatan "Instruksi Khusus"
+        string statusProduksi "tunggu_desain, cetak, selesai"
+        string statusAntar "menunggu, dikirim, selesai"
+    }
+
+    DESIGN {
+        string orderNo FK "PK & FK: Relasi ke ORDER.no"
+        string pelanggan "Nama Pelanggan"
+        string file "Nama File Master (.ai/.cdr/.pdf)"
+        int versi "Nomor Versi Proofing"
+        string status "menunggu, revisi, disetujui"
+        string thumbBg "CSS Gradient Thumbnail"
+        array log "Riwayat Perubahan Desain"
+    }
+
+    PAYMENT {
+        string no PK "Format: TRX-NNNN"
+        string order FK "Relasi ke ORDER.no"
+        string pelanggan "Nama Pelanggan"
+        string jenis "DP atau Pelunasan"
+        string metode "Tunai, Transfer Bank, QRIS"
+        date tanggal "Tanggal Transaksi"
+        int jumlah "Nominal Pembayaran (Rp)"
+    }
+
+    PENGANTARAN {
+        string id PK "Format: PGT-DEMO-NN"
+        string orderNo FK "Relasi ke ORDER.no"
+        string pelanggan "Nama Penerima"
+        string kurir "Nama Driver Pengantar"
+        string kendaraan "Motor Box / Pick-up"
+        string status "proses, tiba, selesai, batal"
+        object asal "{lat, lng} Toko KugiyaiTobe"
+        object tujuan "{lat, lng} Alamat Kirim"
+        object posisi "{lat, lng} Lokasi Terkini"
+        float jarakTotalKm "Jarak Haversine Toko ke Tujuan"
+        float jarakSisaKm "Sisa Jarak Real-Time"
+        int kecepatanKmh "Kecepatan Armada (km/jam)"
+        int etaMenit "Perkiraan Waktu Tiba (menit)"
+        float progress "Rasio Selesai (0.0 s/d 1.0)"
+        array riwayat "Milestone Pengantaran"
+    }
+
+    DRIVER {
+        int id PK "Identifikasi Kurir"
+        string nama "Nama Lengkap Driver"
+        string kendaraan "Tipe Armada & No. Polisi"
+        string hp "Nomor Kontak Telepon"
+        string rating "Skor Kepuasan (contoh: 4.9)"
+        string inisial "Inisial Avatar Bulat"
+        string warna "Warna Indikator Pin"
+        string status "Aktif atau Nonaktif"
+    }
+
+    STOK {
+        string nama PK "Nama Bahan Baku / Tinta"
+        string kategori "Bahan Cetak, Tinta, Finishing"
+        int sisa "Stok Tersisa Saat Ini"
+        int kapasitas "Kapasitas Maksimal Gudang"
+        string satuan "meter, liter, pcs"
+        int minStok "Ambang Batas Peringatan"
+        int masuk "Total Akumulasi Masuk"
+        int keluar "Total Akumulasi Keluar"
+    }
+
+    USER {
+        string email PK "Alamat Email Staf"
+        string nama "Nama Lengkap Staf"
+        string role "Owner, Admin, Designer, dll"
+        boolean aktif "Status Akun Aktif"
+    }

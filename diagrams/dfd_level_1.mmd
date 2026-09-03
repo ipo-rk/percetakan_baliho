@@ -1,0 +1,47 @@
+flowchart TD
+    %% Entitas
+    P["Pelanggan"]
+    S["Staf / Kasir"]
+    DS["Desainer"]
+    OP["Operator"]
+    DR["Kurir"]
+
+    %% Data Stores
+    D1[("DS-1: Core Data<br/>kugiyaiCoreData_v1")]
+    D2[("DS-2: Sesi Pengguna<br/>kugiyaiSession_v1")]
+    D3[("DS-3: CMS Landing<br/>kugiyaiLandingSettings")]
+    D4[("DS-4: Tracking GPS<br/>Pengantaran & Rute")]
+
+    %% Proses
+    P1["1.0 Manajemen Akun<br/>& Otentikasi Sesi"]
+    P2["2.0 Pengelolaan Order<br/>& Titik Lokasi Kirim"]
+    P3["3.0 Proofing Desain<br/>& Persetujuan"]
+    P4["4.0 Alur Produksi<br/>& Kontrol Bahan"]
+    P5["5.0 Kasir, DP<br/>& Pelunasan"]
+    P6["6.0 Dispatching Kurir<br/>& Pelacakan GPS"]
+
+    P -->|"Kredensial / Masuk"| P1
+    P1 -->|"Tulis Sesi"| D2
+    D2 -->|"Baca Peran & ID"| P1
+    P1 -->|"Akses Dashboard"| P
+
+    P -->|"Input Pesanan & Pin Peta"| P2
+    S -->|"Verifikasi Order"| P2
+    P2 -->|"Simpan Order"| D1
+    D1 -->|"Ambil Data Order"| P2
+
+    DS -->|"Upload Master Cetak"| P3
+    P3 -->|"Simpan Status Desain"| D1
+    P -->|"Approval / Revisi Desain"| P3
+
+    OP -->|"Update Status Cetak & Bahan"| P4
+    P4 -->|"Update Stok & Status"| D1
+
+    S -->|"Input DP / Pelunasan"| P5
+    P5 -->|"Catat Transaksi"| D1
+    P5 -->|"Cetak Invoice / SPK"| P
+
+    OP -->|"Siap Antar"| P6
+    DR -->|"Update Koordinat"| P6
+    P6 -->|"Tulis Status Kurir"| D4
+    D4 -->|"Render Posisi Kurir"| P

@@ -97,25 +97,25 @@ flowchart TD
         DR["Kurir / Driver"]
     end
 
-    SYS(("SISTEM CETAK.OS\n(KugiyaiTobe Digital Printing)"))
+    SYS(("SISTEM CETAK.OS<br/>(KugiyaiTobe Digital Printing)"))
 
-    P -- "1. Form Order Baru, Titik GPS, Bukti Bayar, Konfirmasi Terima" --> SYS
-    SYS -- "1. Kuitansi Invoice, Lembar Proof Desain, Posisi Kurir Real-Time" --> P
+    P -->|"1. Form Order Baru, Titik GPS, Bukti Bayar, Konfirmasi Terima"| SYS
+    SYS -->|"1. Kuitansi Invoice, Lembar Proof Desain, Posisi Kurir Real-Time"| P
 
-    O -- "2. Konfigurasi Sistem, Konten CMS, Manajemen Pengguna" --> SYS
-    SYS -- "2. Laporan Laba/Rugi, Metrik KPI, Rekap Produksi" --> O
+    O -->|"2. Konfigurasi Sistem, Konten CMS, Manajemen Pengguna"| SYS
+    SYS -->|"2. Laporan Laba/Rugi, Metrik KPI, Rekap Produksi"| O
 
-    A -- "3. Data Pelanggan, Order Masuk, Transaksi DP/Pelunasan" --> SYS
-    SYS -- "3. Invoice Siap Cetak, Notifikasi Piutang, Status Order" --> A
+    A -->|"3. Data Pelanggan, Order Masuk, Transaksi DP/Pelunasan"| SYS
+    SYS -->|"3. Invoice Siap Cetak, Notifikasi Piutang, Status Order"| A
 
-    D -- "4. Unggah File Master Cetak, Versi Revisi Desain" --> SYS
-    SYS -- "4. Daftar Antrean Desain, Feedback Revisi Pelanggan" --> D
+    D -->|"4. Unggah File Master Cetak, Versi Revisi Desain"| SYS
+    SYS -->|"4. Daftar Antrean Desain, Feedback Revisi Pelanggan"| D
 
-    OP -- "5. Update Tahapan Produksi, Pemakaian Bahan/Stok" --> SYS
-    SYS -- "5. SPK Cetak, Notifikasi Stok Menipis" --> OP
+    OP -->|"5. Update Tahapan Produksi, Pemakaian Bahan/Stok"| SYS
+    SYS -->|"5. SPK Cetak, Notifikasi Stok Menipis"| OP
 
-    DR -- "6. Konfirmasi Berangkat, Koordinat GPS, Selesai Antar" --> SYS
-    SYS -- "6. Rute Pengantaran, Data Alamat & No. HP Pelanggan" --> DR
+    DR -->|"6. Konfirmasi Berangkat, Koordinat GPS, Selesai Antar"| SYS
+    SYS -->|"6. Rute Pengantaran, Data Alamat & No. HP Pelanggan"| DR
 ```
 
 ---
@@ -134,44 +134,44 @@ flowchart TD
     DR["Kurir"]
 
     %% Data Stores
-    D1[("DS-1: Core Data\nkugiyaiCoreData_v1")]
-    D2[("DS-2: Sesi Pengguna\nkugiyaiSession_v1")]
-    D3[("DS-3: CMS Landing\nkugiyaiLandingSettings")]
-    D4[("DS-4: Tracking GPS\nPengantaran & Rute")]
+    D1[("DS-1: Core Data<br/>kugiyaiCoreData_v1")]
+    D2[("DS-2: Sesi Pengguna<br/>kugiyaiSession_v1")]
+    D3[("DS-3: CMS Landing<br/>kugiyaiLandingSettings")]
+    D4[("DS-4: Tracking GPS<br/>Pengantaran & Rute")]
 
     %% Proses
-    P1["1.0 Manajemen Akun\n& Otentikasi Sesi"]
-    P2["2.0 Pengelolaan Order\n& Titik Lokasi Kirim"]
-    P3["3.0 Proofing Desain\n& Persetujuan"]
-    P4["4.0 Alur Produksi\n& Kontrol Bahan"]
-    P5["5.0 Kasir, DP\n& Pelunasan"]
-    P6["6.0 Dispatching Kurir\n& Pelacakan GPS"]
+    P1["1.0 Manajemen Akun<br/>& Otentikasi Sesi"]
+    P2["2.0 Pengelolaan Order<br/>& Titik Lokasi Kirim"]
+    P3["3.0 Proofing Desain<br/>& Persetujuan"]
+    P4["4.0 Alur Produksi<br/>& Kontrol Bahan"]
+    P5["5.0 Kasir, DP<br/>& Pelunasan"]
+    P6["6.0 Dispatching Kurir<br/>& Pelacakan GPS"]
 
-    P -- "Kredensial / Daftar" --> P1
-    P1 -- "Tulis Sesi" --> D2
-    D2 -- "Baca Peran & ID" --> P1
-    P1 -- "Akses Dashboard" --> P
+    P -->|"Kredensial / Masuk"| P1
+    P1 -->|"Tulis Sesi"| D2
+    D2 -->|"Baca Peran & ID"| P1
+    P1 -->|"Akses Dashboard"| P
 
-    P -- "Input Pesanan & Pin Peta" --> P2
-    S -- "Verifikasi Order" --> P2
-    P2 -- "Simpan Order" --> D1
-    D1 -- "Ambil Data Order" --> P2
+    P -->|"Input Pesanan & Pin Peta"| P2
+    S -->|"Verifikasi Order"| P2
+    P2 -->|"Simpan Order"| D1
+    D1 -->|"Ambil Data Order"| P2
 
-    DS -- "Upload Master Cetak" --> P3
-    P3 -- "Simpan Status Desain" --> D1
-    P -- "Approval / Revisi Desain" --> P3
+    DS -->|"Upload Master Cetak"| P3
+    P3 -->|"Simpan Status Desain"| D1
+    P -->|"Approval / Revisi Desain"| P3
 
-    OP -- "Update Status Cetak & Bahan" --> P4
-    P4 -- "Update Stok & Status" --> D1
+    OP -->|"Update Status Cetak & Bahan"| P4
+    P4 -->|"Update Stok & Status"| D1
 
-    S -- "Input DP / Pelunasan" --> P5
-    P5 -- "Catat Transaksi" --> D1
-    P5 -- "Cetak Invoice / SPK" --> P
+    S -->|"Input DP / Pelunasan"| P5
+    P5 -->|"Catat Transaksi"| D1
+    P5 -->|"Cetak Invoice / SPK"| P
 
-    OP -- "Siap Antar" --> P6
-    DR -- "Update Koordinat" --> P6
-    P6 -- "Tulis Status Kurir" --> D4
-    D4 -- "Render Posisi Kurir" --> P
+    OP -->|"Siap Antar"| P6
+    DR -->|"Update Koordinat"| P6
+    P6 -->|"Tulis Status Kurir"| D4
+    D4 -->|"Render Posisi Kurir"| P
 ```
 
 ---
@@ -277,7 +277,7 @@ erDiagram
     }
 
     DESIGN {
-        string orderNo PK, FK "Relasi ke ORDER.no"
+        string orderNo FK "PK & FK: Relasi ke ORDER.no"
         string pelanggan "Nama Pelanggan"
         string file "Nama File Master (.ai/.cdr/.pdf)"
         int versi "Nomor Versi Proofing"
@@ -358,20 +358,20 @@ flowchart TD
     C --> D[Kasir Verifikasi & Terima DP Pesanan]
     D --> E{Apakah Desain Sudah Siap?}
 
-    E -- Tidak --> F[Desainer Unggah Draft Desain Awal]
+    E -->|Tidak| F[Desainer Unggah Draft Desain Awal]
     F --> G[Pelanggan Tinjau Proofing Desain]
     G --> H{Apakah Disetujui Pelanggan?}
-    H -- Revisi --> F
-    H -- Setuju --> I[Status Berubah: Siap Cetak]
+    H -->|Revisi| F
+    H -->|Setuju| I[Status Berubah: Siap Cetak]
 
-    E -- Ya --> I
+    E -->|Ya| I
     I --> J[Operator Produksi Cetak Bahan Sesuai Antrean]
     J --> K[Finishing: Mata Ayam / Seaming / Laminasi]
     K --> L[Status Berubah: Produksi Selesai]
 
     L --> M{Pilihan Pengambilan}
-    M -- Ambil di Toko --> N[Pelanggan Lunasi & Ambil Barang]
-    M -- Antar Kurir --> O[Operator Tugaskan Kurir & Pilih Armada]
+    M -->|"Ambil di Toko"| N[Pelanggan Lunasi & Ambil Barang]
+    M -->|"Antar Kurir"| O[Operator Tugaskan Kurir & Pilih Armada]
 
     O --> P[Kurir Berangkat: Leaflet Engine Simulasi Jalur GPS]
     P --> Q[Pelanggan & Staf Lacak Pergerakan Kurir di Peta]
@@ -392,17 +392,17 @@ Arsitektur modular aplikasi front-end pada peramban web:
 flowchart TD
     subgraph BROWSER["Lingkungan Web Browser Client-Side"]
         subgraph UI_LAYER["Presentation Layer"]
-            C_LANDING["Landing Page View\n(index.html)"]
-            C_LOGIN["Auth Module View\n(login.html)"]
-            C_DASHBOARD["Single Page App Shell\n(dashboard.html)"]
-            C_MAP_VIEW["Interactive Map Widget\n(Leaflet Map Container)"]
+            C_LANDING["Landing Page View<br/>(index.html)"]
+            C_LOGIN["Auth Module View<br/>(login.html)"]
+            C_DASHBOARD["Single Page App Shell<br/>(dashboard.html)"]
+            C_MAP_VIEW["Interactive Map Widget<br/>(Leaflet Map Container)"]
         end
 
         subgraph LOGIC_LAYER["State & Business Logic Layer (Alpine.js)"]
-            C_STATE["Core Store State\n(app() Reactive Object)"]
-            C_ROUTER["Tab & RBAC View Router\n(page, loginRole)"]
-            C_CRUD["CRUD Controllers\n(Order, Desain, Bayar, Stok, Driver)"]
-            C_GPS_ENGINE["GPS Simulator & Haversine Calc\n(clockTick 1000ms loop)"]
+            C_STATE["Core Store State<br/>(app() Reactive Object)"]
+            C_ROUTER["Tab & RBAC View Router<br/>(page, loginRole)"]
+            C_CRUD["CRUD Controllers<br/>(Order, Desain, Bayar, Stok, Driver)"]
+            C_GPS_ENGINE["GPS Simulator & Haversine Calc<br/>(clockTick 1000ms loop)"]
         end
 
         subgraph INTEGRATION_LAYER["Third-Party Service Layer"]
@@ -412,10 +412,10 @@ flowchart TD
         end
 
         subgraph STORAGE_LAYER["Persistent Storage Layer"]
-            S_CORE[("kugiyaiCoreData_v1\n(Operational DB)")]
-            S_SESSION[("kugiyaiSession_v1\n(Active Session)")]
-            S_CMS[("kugiyaiLandingSettings\n(CMS Content)")]
-            S_BUS["Storage Event Bus\n(Cross-Tab Synchronization)"]
+            S_CORE[("kugiyaiCoreData_v1<br/>(Operational DB)")]
+            S_SESSION[("kugiyaiSession_v1<br/>(Active Session)")]
+            S_CMS[("kugiyaiLandingSettings<br/>(CMS Content)")]
+            S_BUS["Storage Event Bus<br/>(Cross-Tab Synchronization)"]
         end
     end
 
@@ -464,7 +464,7 @@ sequenceDiagram
     Dashboard->>Script: simpanBayar()
     Script->>Storage: Update sisa tagihan order & log payment
 
-    Operator->>Dashboard: Ubah status produksi -> 'selesai'
+    Operator->>Dashboard: Ubah status produksi menjadi 'selesai'
     Operator->>Dashboard: Buka Form Pengantaran (pilih Kurir & titik tujuan)
     Operator->>Script: prosesKirim()
     Script->>Storage: Buat entitas pengantaran baru (status: 'proses')
@@ -476,11 +476,11 @@ sequenceDiagram
     end
 
     Kurir->>Dashboard: Tiba di tujuan (progress 100%)
-    Script->>Storage: Status pengantaran berubah -> 'tiba'
+    Script->>Storage: Status pengantaran berubah ke 'tiba'
 
     Pelanggan->>Dashboard: Klik tombol 'Konfirmasi Diterima'
     Dashboard->>Script: konfirmasiTerima(orderNo)
-    Script->>Storage: Status order & pengantaran -> 'selesai'
+    Script->>Storage: Status order & pengantaran menjadi 'selesai'
     Storage-->>Dashboard: Notifikasi Sukses & Tutup Siklus
 ```
 

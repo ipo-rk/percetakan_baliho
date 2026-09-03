@@ -1,0 +1,53 @@
+flowchart LR
+    subgraph ACTORS["Aktor Pengguna"]
+        Pelanggan(("Pelanggan"))
+        Kasir(("Kasir / Admin"))
+        Desainer(("Desainer"))
+        Operator(("Operator Produksi"))
+        Driver(("Driver / Kurir"))
+        Owner(("Owner / Pimpinan"))
+    end
+
+    subgraph SYSTEM["Batasan Sistem CETAK.OS"]
+        UC1(["Buat Pesanan & Tandai Koordinat"])
+        UC2(["Persetujuan / Revisi Desain"])
+        UC3(["Lacak Kurir Real-Time di Peta"])
+        UC4(["Konfirmasi Penerimaan Barang"])
+
+        UC5(["Catat Pembayaran DP / Lunas"])
+        UC6(["Cetak SPK & Kuitansi Invoice"])
+        UC7(["Kelola Data Pelanggan & Stok"])
+
+        UC8(["Unggah Master Desain & Proofing"])
+
+        UC9(["Perbarui Alur Kanban Produksi"])
+        UC10(["Assign Kurir & Pengantaran"])
+
+        UC11(["Simulasi Lokasi & Selesai Kirim"])
+
+        UC12(["Manajemen Pengguna & Staf"])
+        UC13(["Kelola Konten CMS Landing Page"])
+        UC14(["Laporan Keuangan & Reset Data"])
+    end
+
+    Pelanggan --> UC1
+    Pelanggan --> UC2
+    Pelanggan --> UC3
+    Pelanggan --> UC4
+
+    Kasir --> UC5
+    Kasir --> UC6
+    Kasir --> UC7
+
+    Desainer --> UC8
+
+    Operator --> UC9
+    Operator --> UC10
+
+    Driver --> UC11
+
+    Owner --> UC12
+    Owner --> UC13
+    Owner --> UC14
+    Owner --> UC7
+    Owner --> UC6

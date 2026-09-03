@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    actor Pelanggan
+    actor Kasir
+    actor Operator
+    actor Kurir
+    participant Dashboard as dashboard.html (SPA)
+    participant Script as script.js (Alpine State)
+    participant Storage as localStorage (Core DB)
+    participant MapEngine as Leaflet / CartoDB
+
+    Pelanggan->>Dashboard: Input Order Baru + Tandai Titik Peta
+    Dashboard->>Script: simpanOrder()
+    Script->>Storage: Update kugiyaiCoreData_v1 (orders)
+    Storage-->>Dashboard: Data Tersimpan & Refresh Tabel
+
+    Kasir->>Dashboard: Input Pembayaran DP
+    Dashboard->>Script: simpanBayar()
+    Script->>Storage: Update sisa tagihan order & log payment
+
+    Operator->>Dashboard: Ubah status produksi menjadi 'selesai'
+    Operator->>Dashboard: Buka Form Pengantaran (pilih Kurir & titik tujuan)
+    Operator->>Script: prosesKirim()
+    Script->>Storage: Buat entitas pengantaran baru (status: 'proses')
+
+    loop Setiap Detik (clockTick 1000ms)
+        Script->>Script: Hitung posisi intermediate, sisa km, & ETA
+        Script->>MapEngine: Geser marker kurir (.peta-pin-kurir)
+        MapEngine-->>Dashboard: Perbarui garis lintasan polylines
+    end
+
+    Kurir->>Dashboard: Tiba di tujuan (progress 100%)
+    Script->>Storage: Status pengantaran berubah ke 'tiba'
+
+    Pelanggan->>Dashboard: Klik tombol 'Konfirmasi Diterima'
+    Dashboard->>Script: konfirmasiTerima(orderNo)
+    Script->>Storage: Status order & pengantaran menjadi 'selesai'
+    Storage-->>Dashboard: Notifikasi Sukses & Tutup Siklus

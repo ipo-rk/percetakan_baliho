@@ -615,257 +615,7 @@
         </div>
     </div>
 
-    <!-- ================= AUTH MODAL (Masuk / Daftar / Lupa Sandi) ================= -->
-    <div class="auth-overlay" id="authOverlay" aria-hidden="true">
-        <div class="auth-backdrop" aria-hidden="true"></div>
-        <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle" tabindex="-1">
-            <button type="button" class="auth-close" data-auth-close aria-label="Tutup">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-            </button>
 
-            <div class="auth-brand">
-                <span class="auth-brand-mark">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M6 9V3H18V9" stroke="white" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                        <path
-                            d="M6 18H4C3.44772 18 3 17.5523 3 17V11C3 10.4477 3.44772 10 4 10H20C20.5523 10 21 10.4477 21 11V17C21 17.5523 20.5523 18 20 18H18"
-                            stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <rect x="6" y="14" width="12" height="8" stroke="white" stroke-width="2" />
-                    </svg>
-                </span>
-                <span class="auth-brand-name">KUGIYAI<span>.TOBE</span></span>
-            </div>
-            <p class="auth-subtitle">KugiyaiTobe Digital-Printing — Waghete, Deiyai</p>
-
-            <div class="auth-tabs" data-auth-tabs>
-                <button type="button" class="auth-tab is-active" data-auth-tab="login">Masuk</button>
-                <button type="button" class="auth-tab" data-auth-tab="register">Daftar</button>
-                <button type="button" class="auth-tab" data-auth-tab="forgot">Lupa Sandi</button>
-            </div>
-
-            <!-- ===== LOGIN VIEW ===== -->
-            <form class="auth-view is-active" data-auth-view="login" novalidate>
-                <h2 class="auth-title" id="authTitle">Masuk ke sistem</h2>
-                <p class="auth-desc">Kelola pesanan baliho dari desain sampai kirim.</p>
-
-                <!-- Demo account quick-login: pilih peran dari satu dropdown lalu langsung
-                     masuk memakai akun contoh, tanpa perlu tahu username/password —
-                     mewakili keenam peran sistem. Dropdown tunggal ini menjaga tinggi modal
-                     tetap konsisten di semua ukuran layar (dibanding grid 6 tombol terpisah). -->
-                <div class="auth-demo">
-                    <div class="auth-demo-head">
-                        <span class="auth-demo-label">🚀 Coba Akun Demo</span>
-                        <span class="auth-demo-hint">Pilih peran → langsung masuk</span>
-                    </div>
-                    <div class="auth-demo-dropdown" data-auth-demo-dropdown>
-                        <button type="button" class="auth-demo-trigger" id="authDemoTrigger" aria-haspopup="listbox"
-                            aria-expanded="false" aria-controls="authDemoListbox">
-                            <span class="auth-demo-dot" data-demo-trigger-dot></span>
-                            <span class="auth-demo-trigger-text">
-                                <span class="auth-demo-role" data-demo-trigger-role>Pilih peran demo</span>
-                                <span class="auth-demo-who" data-demo-trigger-who>Owner · Admin · Designer · Operator
-                                    · Kasir · Pelanggan</span>
-                            </span>
-                            <svg class="auth-demo-caret" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                aria-hidden="true">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </button>
-                        <ul class="auth-demo-listbox" id="authDemoListbox" role="listbox"
-                            aria-label="Pilih peran akun demo" tabindex="-1" hidden>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Owner">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Owner</span>
-                                    <span class="auth-demo-who">Akses penuh</span>
-                                </span>
-                            </li>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Admin">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Admin</span>
-                                    <span class="auth-demo-who">Order &amp; stok</span>
-                                </span>
-                            </li>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Designer">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Designer</span>
-                                    <span class="auth-demo-who">Desain</span>
-                                </span>
-                            </li>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Operator Produksi">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Operator</span>
-                                    <span class="auth-demo-who">Produksi</span>
-                                </span>
-                            </li>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Kasir">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Kasir</span>
-                                    <span class="auth-demo-who">Pembayaran</span>
-                                </span>
-                            </li>
-                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Pelanggan">
-                                <span class="auth-demo-dot"></span>
-                                <span>
-                                    <span class="auth-demo-role">Pelanggan</span>
-                                    <span class="auth-demo-who">Pesanan saya</span>
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="auth-divider"><span>Atau masuk dengan akun</span></div>
-
-                <label class="auth-label" for="authLoginUser">Nama pengguna / akun</label>
-                <input class="auth-input" type="text" id="authLoginUser" placeholder="Masukkan nama"
-                    autocomplete="username">
-
-                <label class="auth-label" for="authLoginPass">Kata sandi</label>
-                <div class="auth-field-wrap">
-                    <input class="auth-input" type="password" id="authLoginPass" placeholder="••••••••"
-                        autocomplete="current-password">
-                    <button type="button" class="auth-eye" data-auth-eye="authLoginPass"
-                        aria-label="Tampilkan kata sandi">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                            <path d="M2 12S5.5 5 12 5S22 12 22 12S18.5 19 12 19S2 12 2 12Z" stroke="currentColor"
-                                stroke-width="1.8" stroke-linejoin="round" />
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div class="auth-row">
-                    <label class="auth-check">
-                        <input type="checkbox" checked> Ingat saya
-                    </label>
-                    <button type="button" class="auth-link" data-auth-tab="forgot">Lupa kata sandi?</button>
-                </div>
-
-                <p class="auth-error" data-auth-error="login"></p>
-
-                <button type="submit" class="auth-btn-primary">
-                    Masuk Sekarang
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </button>
-
-                <p class="auth-switch">Belum punya akun? <button type="button" class="auth-link"
-                        data-auth-tab="register">Daftar sebagai pelanggan</button></p>
-            </form>
-
-            <!-- ===== REGISTER VIEW ===== -->
-            <form class="auth-view" data-auth-view="register" novalidate>
-                <h2 class="auth-title">Daftar akun pelanggan</h2>
-                <p class="auth-desc">Buat akun untuk memantau &amp; membuat pesanan baliho Anda sendiri.</p>
-
-                <label class="auth-label" for="authRegNama">Nama lengkap</label>
-                <input class="auth-input" type="text" id="authRegNama" placeholder="Nama Anda" autocomplete="name">
-
-                <div class="auth-grid-2">
-                    <div>
-                        <label class="auth-label" for="authRegHp">No. WhatsApp</label>
-                        <input class="auth-input" type="tel" id="authRegHp" placeholder="0812xxxxxxx"
-                            autocomplete="tel">
-                    </div>
-                    <div>
-                        <label class="auth-label" for="authRegInstansi">Instansi (opsional)</label>
-                        <input class="auth-input" type="text" id="authRegInstansi"
-                            placeholder="Toko / gereja / instansi">
-                    </div>
-                </div>
-
-                <label class="auth-label" for="authRegEmail">Email (opsional)</label>
-                <input class="auth-input" type="email" id="authRegEmail" placeholder="nama@email.com"
-                    autocomplete="email">
-
-                <div class="auth-grid-2">
-                    <div>
-                        <label class="auth-label" for="authRegPass">Kata sandi</label>
-                        <input class="auth-input" type="password" id="authRegPass" placeholder="Min. 6 karakter"
-                            autocomplete="new-password">
-                    </div>
-                    <div>
-                        <label class="auth-label" for="authRegPass2">Konfirmasi sandi</label>
-                        <input class="auth-input" type="password" id="authRegPass2" placeholder="Ulangi sandi"
-                            autocomplete="new-password">
-                    </div>
-                </div>
-                <label class="auth-check auth-check-tight">
-                    <input type="checkbox" data-auth-eye-group="authRegPass,authRegPass2"> Tampilkan kata sandi
-                </label>
-
-                <p class="auth-error" data-auth-error="register"></p>
-
-                <button type="submit" class="auth-btn-primary">
-                    Buat Akun
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                </button>
-
-                <p class="auth-switch">Sudah punya akun? <button type="button" class="auth-link"
-                        data-auth-tab="login">Masuk di sini</button></p>
-            </form>
-
-            <!-- ===== FORGOT PASSWORD VIEW ===== -->
-            <form class="auth-view" data-auth-view="forgot" novalidate>
-                <button type="button" class="auth-back" data-auth-tab="login">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    Kembali ke halaman masuk
-                </button>
-
-                <div data-auth-forgot-form>
-                    <h2 class="auth-title">Lupa kata sandi</h2>
-                    <p class="auth-desc">Masukkan email akun Anda, kami akan kirim tautan untuk mengatur ulang kata
-                        sandi.</p>
-
-                    <label class="auth-label" for="authForgotEmail">Email</label>
-                    <input class="auth-input" type="email" id="authForgotEmail" placeholder="nama@email.com"
-                        autocomplete="email">
-                    <p class="auth-error" data-auth-error="forgot"></p>
-
-                    <button type="submit" class="auth-btn-primary">
-                        Kirim Tautan Reset
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </button>
-                </div>
-
-                <div class="auth-success" data-auth-forgot-success hidden>
-                    <div class="auth-success-icon">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                        </svg>
-                    </div>
-                    <h3 class="auth-title" style="font-size:1.05rem">Tautan terkirim!</h3>
-                    <p class="auth-desc">Periksa kotak masuk <strong data-auth-forgot-email></strong> untuk instruksi
-                        reset kata sandi.</p>
-                    <button type="button" class="auth-btn-primary" data-auth-tab="login">Kembali ke Halaman
-                        Masuk</button>
-                </div>
-            </form>
-
-            <a href="dashboard.html" class="auth-direct-link">Lanjut ke sistem tanpa mengisi form &rarr;</a>
-        </div>
-    </div>
 
     <script>
         document.getElementById('year').textContent = new Date().getFullYear();
@@ -880,6 +630,53 @@
         // perlu di-refresh manual.
         let _heroSlideTimer = null;
         const _heroSlideState = { slidesWrap: null, dotsWrap: null, intervalMs: 3500 };
+        const LANDING_ASSET_PATHS = {
+            banner: [
+                'asset/img/banner-ticket/ticket-1.jpeg',
+                'asset/img/banner-ticket/ticket-2.jpg',
+                'asset/img/banner-ticket/ticket-3.jpeg',
+                'asset/img/banner-ticket/ticket-4.jpg',
+                'asset/img/banner-ticket/ticket-5.png',
+                'asset/img/banner-ticket/ticket-6.jpeg',
+            ],
+            gallery: [
+                'asset/img/gallery/gallery-1.jpeg',
+                'asset/img/gallery/gallery-2.jpeg',
+                'asset/img/gallery/gallery-3.png',
+                'asset/img/gallery/gallery-4.png',
+                'asset/img/gallery/gallery-5.jpeg',
+                'asset/img/gallery/gallery-6.jpeg',
+            ],
+        };
+
+        function _canonicalAssetPath(path, type) {
+            const paths = LANDING_ASSET_PATHS[type];
+            return typeof path === 'string' && paths.includes(path) ? path : null;
+        }
+
+        function _canonicalLandingImages(saved, defaults) {
+            const normalized = { ...saved };
+            const defaultBanners = defaults.heroBannerGaleri;
+            const savedBanners = Array.isArray(saved.heroBannerGaleri) && saved.heroBannerGaleri.length
+                ? saved.heroBannerGaleri : defaultBanners;
+            normalized.heroBannerGaleri = savedBanners
+                .map(path => _canonicalAssetPath(path, 'banner'))
+                .filter(Boolean);
+            if (!normalized.heroBannerGaleri.length) normalized.heroBannerGaleri = [...LANDING_ASSET_PATHS.banner];
+            normalized.heroBannerGambar = normalized.heroBannerGaleri[0];
+
+            const defaultGallery = defaults.galeri;
+            const savedGallery = Array.isArray(saved.galeri) && saved.galeri.length ? saved.galeri : defaultGallery;
+            normalized.galeri = savedGallery.map(item => {
+                const gambar = _canonicalAssetPath(item && item.gambar, 'gallery');
+                return gambar ? { ...item, gambar } : null;
+            }).filter(Boolean);
+            if (!normalized.galeri.length) normalized.galeri = LANDING_DEFAULTS.galeri.map((item, index) => ({
+                ...item,
+                gambar: LANDING_ASSET_PATHS.gallery[index],
+            }));
+            return normalized;
+        }
 
         function _tickHeroSlide() {
             const { slidesWrap, dotsWrap } = _heroSlideState;
@@ -971,6 +768,7 @@
                 const raw = localStorage.getItem('kugiyaiLandingSettings');
                 if (raw) saved = JSON.parse(raw.replace(/ticket-4\.jpeg/g, 'ticket-4.jpg'));
             } catch (e) { /* abaikan */ }
+            saved = _canonicalLandingImages(saved, LANDING_DEFAULTS);
 
             // Merge: gunakan nilai dari localStorage jika ada, otherwise pakai default.
             // Array (galeri, testimoni, layanan, heroBannerGaleri) hanya diganti jika

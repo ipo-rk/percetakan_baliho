@@ -27,6 +27,51 @@ const SESSION_KEY = 'kugiyaiSession_v1';
 // hanya perubahan CMS tanpa menginterpretasi seluruh data operasional.
 const CMS_KEY = 'kugiyaiLandingSettings';
 const CMS_SYNC_KEY = 'kugiyaiLandingSettingsSyncedAt';
+const LANDING_ASSET_PATHS = {
+    banner: [
+        'asset/img/banner-ticket/ticket-1.jpeg',
+        'asset/img/banner-ticket/ticket-2.jpg',
+        'asset/img/banner-ticket/ticket-3.jpeg',
+        'asset/img/banner-ticket/ticket-4.jpg',
+        'asset/img/banner-ticket/ticket-5.png',
+        'asset/img/banner-ticket/ticket-6.jpeg',
+    ],
+    gallery: [
+        'asset/img/gallery/gallery-1.jpeg',
+        'asset/img/gallery/gallery-2.jpeg',
+        'asset/img/gallery/gallery-3.png',
+        'asset/img/gallery/gallery-4.png',
+        'asset/img/gallery/gallery-5.jpeg',
+        'asset/img/gallery/gallery-6.jpeg',
+    ],
+};
+
+function canonicalAssetPath(path, type) {
+    const paths = LANDING_ASSET_PATHS[type];
+    return typeof path === 'string' && paths.includes(path) ? path : null;
+}
+
+function canonicalLandingImages(saved, defaults) {
+    const normalized = { ...saved };
+    const bannerImages = Array.isArray(saved.heroBannerGaleri) && saved.heroBannerGaleri.length
+        ? saved.heroBannerGaleri : defaults.heroBannerGaleri;
+    normalized.heroBannerGaleri = bannerImages
+        .map(path => canonicalAssetPath(path, 'banner'))
+        .filter(Boolean);
+    if (!normalized.heroBannerGaleri.length) normalized.heroBannerGaleri = [...LANDING_ASSET_PATHS.banner];
+    normalized.heroBannerGambar = normalized.heroBannerGaleri[0];
+
+    const galleryItems = Array.isArray(saved.galeri) && saved.galeri.length ? saved.galeri : defaults.galeri;
+    normalized.galeri = galleryItems.map(item => {
+        const gambar = canonicalAssetPath(item && item.gambar, 'gallery');
+        return gambar ? { ...item, gambar } : null;
+    }).filter(Boolean);
+    if (!normalized.galeri.length) normalized.galeri = defaults.galeri.map((item, index) => ({
+        ...item,
+        gambar: LANDING_ASSET_PATHS.gallery[index],
+    }));
+    return normalized;
+}
 
 // ============================================================
 // PETA GPS PENGANTARAN — konstanta & helper murni (bisa dipakai
@@ -279,7 +324,7 @@ function app() {
         desainFilter: 'Semua',
         desainSearch: '',
         desainPresets: [
-            { label: 'Stiker & Label Cutting', url: '    ', file: 'stiker_cutting_final.ai' },
+            { label: 'Stiker & Label Cutting', url: 'asset/img/gallery/gallery-5.jpeg', file: 'stiker_cutting_final.ai' },
             { label: 'Baliho Digital Printing', url: 'asset/img/gallery/gallery-1.jpeg', file: 'baliho_flexi_3x4.cdr' },
             { label: 'Banner Roll Up Pameran', url: 'asset/img/gallery/gallery-3.png', file: 'banner_rollup_expo.pdf' },
             { label: 'Baliho Toko Promosi', url: 'asset/img/gallery/gallery-4.png', file: 'baliho_toko_v2.ai' },
@@ -3144,7 +3189,7 @@ function app() {
                         });
                     }
                     // Deep-merge: primitives overwrite, arrays fully replace if present
-                    this.landingSettings = Object.assign({}, defaults, saved);
+                    this.landingSettings = Object.assign({}, defaults, canonicalLandingImages(saved, defaults));
                 } else {
                     // Belum pernah disimpan sama sekali (mis. instalasi baru / localStorage
                     // baru dibersihkan) — simpan nilai default secara diam-diam supaya

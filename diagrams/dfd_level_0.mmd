@@ -1,0 +1,29 @@
+flowchart TD
+    subgraph EKSTERNAL["Entitas Luar"]
+        P["Pelanggan"]
+        O["Owner / Pimpinan"]
+        A["Admin & Kasir"]
+        D["Desainer Grafis"]
+        OP["Operator Produksi"]
+        DR["Kurir / Driver"]
+    end
+
+    SYS(("SISTEM CETAK.OS<br/>(KugiyaiTobe Digital Printing)"))
+
+    P -->|"1. Form Order Baru, Titik GPS, Bukti Bayar, Konfirmasi Terima"| SYS
+    SYS -->|"1. Kuitansi Invoice, Lembar Proof Desain, Posisi Kurir Real-Time"| P
+
+    O -->|"2. Konfigurasi Sistem, Konten CMS, Manajemen Pengguna"| SYS
+    SYS -->|"2. Laporan Laba/Rugi, Metrik KPI, Rekap Produksi"| O
+
+    A -->|"3. Data Pelanggan, Order Masuk, Transaksi DP/Pelunasan"| SYS
+    SYS -->|"3. Invoice Siap Cetak, Notifikasi Piutang, Status Order"| A
+
+    D -->|"4. Unggah File Master Cetak, Versi Revisi Desain"| SYS
+    SYS -->|"4. Daftar Antrean Desain, Feedback Revisi Pelanggan"| D
+
+    OP -->|"5. Update Tahapan Produksi, Pemakaian Bahan/Stok"| SYS
+    SYS -->|"5. SPK Cetak, Notifikasi Stok Menipis"| OP
+
+    DR -->|"6. Konfirmasi Berangkat, Koordinat GPS, Selesai Antar"| SYS
+    SYS -->|"6. Rute Pengantaran, Data Alamat & No. HP Pelanggan"| DR

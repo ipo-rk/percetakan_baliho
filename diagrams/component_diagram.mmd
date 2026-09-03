@@ -1,0 +1,46 @@
+flowchart TD
+    subgraph BROWSER["Lingkungan Web Browser Client-Side"]
+        subgraph UI_LAYER["Presentation Layer"]
+            C_LANDING["Landing Page View<br/>(index.html)"]
+            C_LOGIN["Auth Module View<br/>(login.html)"]
+            C_DASHBOARD["Single Page App Shell<br/>(dashboard.html)"]
+            C_MAP_VIEW["Interactive Map Widget<br/>(Leaflet Map Container)"]
+        end
+
+        subgraph LOGIC_LAYER["State & Business Logic Layer (Alpine.js)"]
+            C_STATE["Core Store State<br/>(app() Reactive Object)"]
+            C_ROUTER["Tab & RBAC View Router<br/>(page, loginRole)"]
+            C_CRUD["CRUD Controllers<br/>(Order, Desain, Bayar, Stok, Driver)"]
+            C_GPS_ENGINE["GPS Simulator & Haversine Calc<br/>(clockTick 1000ms loop)"]
+        end
+
+        subgraph INTEGRATION_LAYER["Third-Party Service Layer"]
+            C_LEAFLET["Leaflet Engine v1.9.4"]
+            C_CARTO["CartoDB Voyager HD Tiles"]
+            C_CHART["Chart.js Analytics Renderer"]
+        end
+
+        subgraph STORAGE_LAYER["Persistent Storage Layer"]
+            S_CORE[("kugiyaiCoreData_v1<br/>(Operational DB)")]
+            S_SESSION[("kugiyaiSession_v1<br/>(Active Session)")]
+            S_CMS[("kugiyaiLandingSettings<br/>(CMS Content)")]
+            S_BUS["Storage Event Bus<br/>(Cross-Tab Synchronization)"]
+        end
+    end
+
+    C_LANDING --> S_CMS
+    C_LANDING --> S_SESSION
+    C_LOGIN --> S_SESSION
+    C_DASHBOARD --> C_ROUTER
+    C_ROUTER --> C_STATE
+    C_STATE --> C_CRUD
+    C_CRUD --> C_GPS_ENGINE
+    C_GPS_ENGINE --> C_LEAFLET
+    C_LEAFLET --> C_CARTO
+    C_STATE --> C_CHART
+
+    C_CRUD <--> S_CORE
+    C_STATE <--> S_SESSION
+    C_CRUD <--> S_CMS
+    S_BUS <--> C_LANDING
+    S_BUS <--> C_DASHBOARD

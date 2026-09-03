@@ -1,0 +1,29 @@
+flowchart TD
+    Start([Mulai]) --> A[Pelanggan Masuk / Buka Landing Page]
+    A --> B[Pilih Menu Buat Order Baru]
+    B --> C[Isi Ukuran, Bahan, & Tentukan Pin Alamat di Peta GPS]
+    C --> D[Kasir Verifikasi & Terima DP Pesanan]
+    D --> E{Apakah Desain Sudah Siap?}
+
+    E -->|Tidak| F[Desainer Unggah Draft Desain Awal]
+    F --> G[Pelanggan Tinjau Proofing Desain]
+    G --> H{Apakah Disetujui Pelanggan?}
+    H -->|Revisi| F
+    H -->|Setuju| I[Status Berubah: Siap Cetak]
+
+    E -->|Ya| I
+    I --> J[Operator Produksi Cetak Bahan Sesuai Antrean]
+    J --> K[Finishing: Mata Ayam / Seaming / Laminasi]
+    K --> L[Status Berubah: Produksi Selesai]
+
+    L --> M{Pilihan Pengambilan}
+    M -->|"Ambil di Toko"| N[Pelanggan Lunasi & Ambil Barang]
+    M -->|"Antar Kurir"| O[Operator Tugaskan Kurir & Pilih Armada]
+
+    O --> P[Kurir Berangkat: Leaflet Engine Simulasi Jalur GPS]
+    P --> Q[Pelanggan & Staf Lacak Pergerakan Kurir di Peta]
+    Q --> R[Kurir Tiba di Titik Koordinat Tujuan]
+    R --> S[Pelanggan Lunasi Tagihan & Tekan Konfirmasi Diterima]
+    S --> T[Siklus Pengantaran Tuntas & Simpan Riwayat]
+    N --> T
+    T --> End([Selesai])

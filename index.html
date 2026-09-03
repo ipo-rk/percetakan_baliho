@@ -56,8 +56,8 @@
                 <a href="#galeri">Galeri</a>
                 <a href="#testimoni">Testimoni</a>
                 <a href="#kontak">Kontak</a>
-                <a href="dashboard.html" class="js-open-auth" data-view="login" style="color:var(--primary)">Masuk
-                    Sistem</a>
+                <a href="login.html" id="navAuthLink" class="js-open-auth" data-view="login"
+                    style="color:var(--primary);font-weight:600;">🔑 Masuk / Akun</a>
             </nav>
 
             <div class="nav-actions">
@@ -617,7 +617,7 @@
 
     <!-- ================= AUTH MODAL (Masuk / Daftar / Lupa Sandi) ================= -->
     <div class="auth-overlay" id="authOverlay" aria-hidden="true">
-        <div class="auth-backdrop" data-auth-close></div>
+        <div class="auth-backdrop" aria-hidden="true"></div>
         <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle" tabindex="-1">
             <button type="button" class="auth-close" data-auth-close aria-label="Tutup">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -902,11 +902,85 @@
         }
 
         function applyLandingSettings() {
-            let s = {};
+            // =====================================================================
+            // DATA DEFAULT — identik dengan _defaultLanding() di asset/js/script.js.
+            // Dipakai sebagai fallback penuh saat localStorage kosong (device baru,
+            // GitHub Pages, incognito, atau setelah clear storage) supaya seluruh
+            // section hero, galeri, layanan, dan testimoni tetap tampil dengan benar
+            // tanpa perlu membuka dashboard terlebih dahulu.
+            // =====================================================================
+            const LANDING_DEFAULTS = {
+                promoAktif: true,
+                promoPesan: '🎉 PROMO KHUSUS: Diskon 10% untuk pesanan Baliho Flexi di atas 30 m²! Hubungi WhatsApp kami sekarang.',
+                heroEyebrow: 'Percetakan Digital · Waghete, Deiyai',
+                heroJudul: 'Baliho &amp; spanduk<br>tercetak <em>tajam,</em><br>terkirim cepat.',
+                heroLead: 'Dari desain sampai pasang di lokasi — KugiyaiTobe melayani cetak baliho flexi, spanduk vinyl, banner roll up, dan stiker untuk instansi, gereja, koperasi, dan usaha di seluruh Papua Tengah.',
+                ctaJudul: 'Butuh baliho terpasang minggu ini?',
+                ctaLead: 'Kirim ukuran dan bahan yang Anda mau lewat WhatsApp — tim kami balas dalam hitungan menit di jam kerja.',
+                heroBannerGaleri: [
+                    'asset/img/banner-ticket/ticket-1.jpeg',
+                    'asset/img/banner-ticket/ticket-6.jpeg',
+                    'asset/img/banner-ticket/ticket-4.jpg',
+                ],
+                heroBannerInterval: 3.5,
+                heroBannerGambar: 'asset/img/banner-ticket/ticket-1.jpeg',
+                heroBannerTag: 'JOB #0150 · IN PRODUCTION',
+                heroBannerJudul: 'TOKO SINAR BALIHO',
+                heroBannerSub: 'Grand Opening · Waghete',
+                heroMetaUkuran: '3 × 4 m',
+                heroMetaBahan: 'Flexi China 280gsm',
+                heroMetaFinishing: 'Mata Ayam',
+                heroMetaEstimasi: '2 hari kerja',
+                waNumber: '6281240902277',
+                whatsappPesan: 'Halo KugiyaiTobe, saya ingin pesan cetak',
+                hargaBaliho: 25000,
+                hargaSpanduk: 35000,
+                hargaStiker: 15000,
+                hargaRollup: 390000,
+                statBaliho: 500,
+                statInstansi: 50,
+                statHariProduksi: 2,
+                statTahun: 6,
+                galeri: [
+                    { id: 1, nama: 'Toko Sinar Baliho', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'asset/img/gallery/gallery-1.jpeg', warna: 'linear-gradient(155deg,#FF6B2C,#E5551A)' },
+                    { id: 2, nama: 'GKI Immanuel', jenis: 'SPANDUK UCAPAN · 1×2M', gambar: 'asset/img/gallery/gallery-2.jpeg', warna: 'linear-gradient(155deg,#0F6E6E,#0B5555)' },
+                    { id: 3, nama: 'Dinas Pariwisata', jenis: 'BANNER ROLL UP · PAMERAN', gambar: 'asset/img/gallery/gallery-3.png', warna: 'linear-gradient(155deg,#7C5CFC,#5B3FE0)' },
+                    { id: 4, nama: 'Koperasi Cendrawasih Maju', jenis: 'BALIHO FLEXI · 2×3M', gambar: 'asset/img/gallery/gallery-4.png', warna: 'linear-gradient(155deg,#F4A100,#C97F00)' },
+                    { id: 5, nama: 'CV Papua Digital Print', jenis: 'STIKER KEMASAN · CUTTING', gambar: 'asset/img/gallery/gallery-5.jpeg', warna: 'linear-gradient(155deg,#2A9D6B,#1F7A53)' },
+                    { id: 6, nama: 'Event Sentani', jenis: 'BALIHO FLEXI · 3×4M', gambar: 'asset/img/gallery/gallery-6.jpeg', warna: 'linear-gradient(155deg,#E63946,#B91C2B)' },
+                ],
+                testimoni: [
+                    { id: 1, nama: 'Yustus Wanma', instansi: 'Toko Sinar Baliho', kutipan: 'Pesan baliho toko, sehari sebelum grand opening masih sempat direvisi warnanya. Hasilnya tajam dan tepat waktu.', inisial: 'YW', warna: '#FF6B2C' },
+                    { id: 2, nama: 'Maria Ayamiseba', instansi: 'Koperasi Cendrawasih Maju', kutipan: 'Sudah tiga kali cetak spanduk koperasi di sini. Bahannya awet, tidak cepat pudar meski kena hujan.', inisial: 'MA', warna: '#0F6E6E' },
+                    { id: 3, nama: 'Selvi Mansawan', instansi: 'Dinas Pariwisata Kab. Jayapura', kutipan: 'Butuh baliho pameran mendadak, tim KugiyaiTobe bantu desain dan cetak dalam dua hari.', inisial: 'SM', warna: '#7C5CFC' },
+                ],
+                layanan: [
+                    { id: 1, nama: 'Baliho Flexi', deskripsi: 'Baliho outdoor tahan cuaca untuk promosi, instansi, dan acara — ukuran custom sesuai lokasi pasang.', hargaLabel: 'MULAI RP 25.000 / M²', iconBg: 'var(--primary-light)', iconColor: 'var(--primary-dark)' },
+                    { id: 2, nama: 'Spanduk Vinyl', deskripsi: 'Spanduk ucapan, event, dan promosi toko — proses cepat, cocok untuk kebutuhan mendadak.', hargaLabel: 'MULAI RP 35.000 / M²', iconBg: '#DFF3F1', iconColor: '#0F6E6E' },
+                    { id: 3, nama: 'Banner Roll Up', deskripsi: 'Banner pameran & booth lengkap dengan standing frame — siap pasang begitu diterima.', hargaLabel: 'MULAI RP 390.000 / UNIT', iconBg: '#EBE6FE', iconColor: '#7C5CFC' },
+                    { id: 4, nama: 'Stiker & Vinyl Cutting', deskripsi: 'Stiker label produk, cutting sticker bentuk custom, dan laminasi doff/glossy.', hargaLabel: 'MULAI RP 15.000 / LEMBAR', iconBg: '#DDF2E7', iconColor: '#2A9D6B' },
+                    { id: 5, nama: 'Neon Box & Signage', deskripsi: 'Papan nama toko dan instansi dengan pencahayaan LED — desain menyesuaikan identitas Anda.', hargaLabel: 'KONSULTASI GRATIS', iconBg: '#FDF0D6', iconColor: '#F4A100' },
+                    { id: 6, nama: 'Desain Grafis', deskripsi: 'Tim desain bantu dari nol sampai final — revisi berjalan sampai Anda benar-benar setuju.', hargaLabel: 'TERMASUK DI SETIAP ORDER', iconBg: '#FBE0E2', iconColor: '#E63946' },
+                ],
+            };
+
+            // Baca dari localStorage jika ada, lalu deep-merge ke atas default sehingga
+            // kunci yang belum tersimpan tetap terpenuhi dari LANDING_DEFAULTS.
+            let saved = {};
             try {
                 const raw = localStorage.getItem('kugiyaiLandingSettings');
-                if (raw) s = JSON.parse(raw);
-            } catch (e) { return; }
+                if (raw) saved = JSON.parse(raw.replace(/ticket-4\.jpeg/g, 'ticket-4.jpg'));
+            } catch (e) { /* abaikan */ }
+
+            // Merge: gunakan nilai dari localStorage jika ada, otherwise pakai default.
+            // Array (galeri, testimoni, layanan, heroBannerGaleri) hanya diganti jika
+            // benar-benar ada di localStorage (tidak kosong).
+            const s = Object.assign({}, LANDING_DEFAULTS, Object.fromEntries(
+                Object.entries(saved).filter(([, v]) => {
+                    if (Array.isArray(v)) return v.length > 0;
+                    return v !== null && v !== undefined && v !== '';
+                })
+            ));
 
             const $ = id => document.getElementById(id);
             // Hentikan slideshow lama dulu sebelum DOM slide dibangun ulang, supaya
@@ -927,24 +1001,15 @@
 
             // 2. Hero Section
             if ($('heroEyebrow') && s.heroEyebrow) $('heroEyebrow').textContent = s.heroEyebrow;
+            // heroJudul pakai innerHTML agar tag <em> / <br> dalam string default tetap dirender dengan benar.
             if ($('heroTitle') && s.heroJudul) $('heroTitle').innerHTML = s.heroJudul.replace(/\n/g, '<br>');
             if ($('heroLead') && s.heroLead) $('heroLead').textContent = s.heroLead;
 
             // 2.1 Hero Banner Preview Visual (Ticket Live) — slideshow
+            // s.heroBannerGaleri selalu terisi (dari LANDING_DEFAULTS atau localStorage).
             const slidesWrap = $('heroBannerSlides');
             const dotsWrap = $('heroBannerDots');
-            // Fallback default (identik dengan _defaultLanding() di script.js) — dipakai
-            // saat belum ada pengaturan tersimpan sama sekali (mis. dashboard.html belum
-            // pernah dibuka di browser ini), supaya Banner Preview tetap tampil sebagai
-            // slide sejak kunjungan pertama, bukan hanya gambar statis tunggal.
-            const defaultGaleri = [
-                'asset/img/banner-ticket/ticket-1.jpeg',
-                'asset/img/banner-ticket/ticket-6.jpeg',
-                'asset/img/banner-ticket/ticket-4.jpeg',
-            ];
-            const galeri = Array.isArray(s.heroBannerGaleri) && s.heroBannerGaleri.length
-                ? s.heroBannerGaleri
-                : (s.heroBannerGambar ? [s.heroBannerGambar] : defaultGaleri);
+            const galeri = s.heroBannerGaleri;
 
             if (slidesWrap && galeri) {
                 slidesWrap.innerHTML = '';
@@ -1032,7 +1097,7 @@
             if (Array.isArray(s.layanan) && s.layanan.length && $('serviceGrid')) {
                 const grid = $('serviceGrid');
                 grid.innerHTML = s.layanan.map(l => `
-                    <div class="service-card" data-reveal>
+                    <div class="service-card in" data-reveal>
                         <div class="service-icon" style="background:${l.iconBg || 'var(--primary-light)'};color:${l.iconColor || 'var(--primary-dark)'}">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M21 8L12 3L3 8L12 13L21 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -1053,7 +1118,7 @@
                     const imgHtml = g.gambar ? `<img class="port-img" src="${g.gambar}" alt="${g.nama || 'Pekerjaan Percetakan'}" loading="lazy" onerror="this.style.display='none'">` : '';
                     const bgStyle = g.warna ? `background:${g.warna}` : `background:linear-gradient(155deg,#14161C,#2A2E3A)`;
                     return `
-                        <div class="port-card" style="${bgStyle}" data-reveal>
+                        <div class="port-card in" style="${bgStyle}" data-reveal>
                             ${imgHtml}
                             <svg class="crop tl"><use href="#crop-mark" /></svg>
                             <svg class="crop br"><use href="#crop-mark" /></svg>
@@ -1067,7 +1132,7 @@
             if (Array.isArray(s.testimoni) && s.testimoni.length && $('testiGrid')) {
                 const tgrid = $('testiGrid');
                 tgrid.innerHTML = s.testimoni.map(t => `
-                    <div class="testi-card" data-reveal>
+                    <div class="testi-card in" data-reveal>
                         <p class="testi-quote">"${t.kutipan}"</p>
                         <div class="testi-who">
                             <div class="avatar" style="background:${t.warna || 'var(--primary)'}">${t.inisial || '??'}</div>
@@ -1104,9 +1169,39 @@
         // di-refresh manual. kugiyaiLandingSettingsSyncedAt sengaja ikut ditulis
         // oleh saveLandingSettings() di script.js supaya event ini tetap terpicu
         // walau isi pengaturan kebetulan menghasilkan string JSON yang persis sama.
+        function updateAuthHeaderState() {
+            const navLink = document.getElementById('navAuthLink');
+            if (!navLink) return;
+            try {
+                const rawSess = localStorage.getItem('kugiyaiSession_v1');
+                if (rawSess) {
+                    const sess = JSON.parse(rawSess);
+                    // Dukung kedua format sesi: login.html (user/role) & script.js (loginUserName/loginRole)
+                    const name = sess.user || sess.username || sess.loginUserName;
+                    const role = sess.role || sess.loginRole;
+                    if (sess && name && role) {
+                        // Tampilkan informasi sesi aktif di navbar
+                        const displayRole = role === 'Pelanggan' ? 'Pelanggan' : role;
+                        navLink.innerHTML = `👤 ${name} <small style="opacity:0.8;font-weight:normal">(${displayRole})</small>`;
+                        navLink.href = 'dashboard.html';
+                        navLink.title = 'Sesi Aktif — Klik untuk buka Dashboard CETAK.OS';
+                        return;
+                    }
+                }
+            } catch (e) { }
+            navLink.innerHTML = '🔑 Masuk / Akun';
+            navLink.href = 'login.html';
+            navLink.title = 'Masuk atau daftar akun';
+        }
+
+        updateAuthHeaderState();
+
         window.addEventListener('storage', (e) => {
             if (!e.key || e.key === 'kugiyaiLandingSettings' || e.key === 'kugiyaiLandingSettingsSyncedAt') {
                 applyLandingSettings();
+            }
+            if (!e.key || e.key === 'kugiyaiSession_v1' || e.key === 'kugiyaiCoreData_v1') {
+                updateAuthHeaderState();
             }
         });
 
@@ -1256,28 +1351,21 @@
             }
 
             openers.forEach(a => a.addEventListener('click', (e) => {
+                // Jika elemen ini adalah #navAuthLink dan sudah menunjuk ke dashboard.html
+                // (artinya updateAuthHeaderState() mendeteksi sesi aktif), biarkan
+                // navigasi normal ke dashboard — jangan buka auth modal.
+                if (a.id === 'navAuthLink' && a.href && a.href.includes('dashboard.html')) return;
                 e.preventDefault();
                 openModal(a.dataset.view || 'login');
             }));
-            closers.forEach(b => b.addEventListener('click', closeModal));
+            // HANYA tombol close ([X] button.auth-close) yang dapat menutup modal /
+            // kembali ke landing page. Klik pada div.auth-backdrop atau area di luar
+            // modal sengaja DIMATIKAN agar formulir tidak tertutup tanpa sengaja.
+            closers.forEach(b => b.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeModal();
+            }));
 
-            // Klik di luar kartu modal (area backdrop, sudut, dsb.) harus
-            // menutup modal & kembali ke landing page — sama seperti klik
-            // tombol close (X). Dicek lewat closest('.auth-modal') supaya
-            // seluruh area overlay di luar kartu ikut menutup, bukan cuma
-            // bergantung pada satu elemen backdrop tipis. Mousedown & click
-            // sama-sama dicek di luar modal supaya drag-select teks di dalam
-            // form yang berakhir di luar modal (mis. saat menyalin teks)
-            // tidak tidak sengaja menutup form.
-            let mousedownOutsideModal = false;
-            overlay.addEventListener('mousedown', (e) => {
-                mousedownOutsideModal = !e.target.closest('.auth-modal');
-            });
-            overlay.addEventListener('click', (e) => {
-                if (mousedownOutsideModal && !e.target.closest('.auth-modal') && overlay.classList.contains('is-open')) {
-                    closeModal();
-                }
-            });
             tabBtns.forEach(b => b.addEventListener('click', () => setView(b.dataset.authTab)));
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeModal();

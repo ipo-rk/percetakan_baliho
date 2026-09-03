@@ -10,7 +10,7 @@ console.info('[CETAK.OS] script.js loaded — build 2026-08-25 (pilih lokasi pen
 // supaya kalau struktur data berubah di rilis berikutnya, kita bisa menaikkan
 // versinya tanpa bentrok dengan data lama yang formatnya berbeda.
 const CORE_DATA_KEY = 'kugiyaiCoreData_v1';
-const CORE_DATA_FIELDS = ['customers', 'orders', 'designs', 'payments', 'stok', 'users', 'pengantaran'];
+const CORE_DATA_FIELDS = ['customers', 'orders', 'designs', 'payments', 'stok', 'users', 'pengantaran', 'kurirAktif'];
 
 // Kunci localStorage tempat sesi login AKTIF disimpan (siapa yang sedang login
 // & sebagai peran apa). Dulu sesi hanya "titip lewat" sessionStorage sekali
@@ -20,6 +20,13 @@ const CORE_DATA_FIELDS = ['customers', 'orders', 'designs', 'payments', 'stok', 
 // default (Owner). Sekarang begitu login/beralih peran berhasil, sesi
 // disimpan permanen di sini juga supaya bertahan lintas refresh & lintas tab.
 const SESSION_KEY = 'kugiyaiSession_v1';
+
+// Kunci localStorage tempat pengaturan konten CMS Landing Page disimpan.
+// Dipisah dari data operasional supaya perubahan landing page (promo, galeri, teks)
+// tidak memicu reload data order/pelanggan, dan agar index.html bisa mendengarkan
+// hanya perubahan CMS tanpa menginterpretasi seluruh data operasional.
+const CMS_KEY = 'kugiyaiLandingSettings';
+const CMS_SYNC_KEY = 'kugiyaiLandingSettingsSyncedAt';
 
 // ============================================================
 // PETA GPS PENGANTARAN — konstanta & helper murni (bisa dipakai
@@ -219,6 +226,7 @@ function app() {
             { key: 'desain', label: 'Manajemen Desain', desc: 'Upload, revisi, dan persetujuan desain', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M21 15L16 10L5 21" stroke="currentColor" stroke-width="1.8"/></svg>' },
             { key: 'produksi', label: 'Produksi', desc: 'Papan alur status pengerjaan cetak', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 21V13C4 12.4477 4.44772 12 5 12H9V21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21V8C10 7.44772 10.4477 7 11 7H14C14.5523 7 15 7.44772 15 8V21" stroke="currentColor" stroke-width="1.8"/><path d="M16 21V4C16 3.44772 16.4477 3 17 3H19C19.5523 3 20 3.44772 20 4V21" stroke="currentColor" stroke-width="1.8"/></svg>' },
             { key: 'peta', label: 'Lacak Pengantaran', desc: 'Pantau lokasi kurir & pengiriman real-time', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 19 14.6 19 9.5C19 5.36 15.64 2 12 2C8.36 2 5 5.36 5 9.5C5 14.6 12 21 12 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>' },
+            { key: 'driver', label: 'Driver & Armada', desc: 'Kelola tim kurir & kendaraan pengantar', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 18H3C2.44772 18 2 17.5523 2 17V11C2 9.89543 2.89543 9 4 9H16C17.1046 9 18 9.89543 18 11V17C18 17.5523 17.5523 18 17 18H15" stroke="currentColor" stroke-width="1.8"/><circle cx="7.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="14.5" cy="18" r="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M18 11H21L23 14V17H21" stroke="currentColor" stroke-width="1.8"/></svg>' },
             { key: 'pembayaran', label: 'Pembayaran', desc: 'DP, pelunasan, dan riwayat transaksi', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M2 10H22" stroke="currentColor" stroke-width="1.8"/></svg>' },
             { key: 'stok', label: 'Stok / Bahan', desc: 'Kelola bahan baku dan tinta', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 8L12 3L3 8L12 13L21 8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8V16L12 21L21 16V8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 13V21" stroke="currentColor" stroke-width="1.8"/></svg>' },
             { key: 'laporan', label: 'Laporan', desc: 'Analisis penjualan dan performa bisnis', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M12 20V4M20 20V14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' },
@@ -284,6 +292,9 @@ function app() {
         stokError: '',
         formUser: { nama: '', email: '', role: 'Admin' },
         userError: '',
+        formDriver: { id: null, nama: '', kendaraan: '', hp: '', status: 'Aktif' },
+        driverError: '',
+        driverEditMode: false,
 
         resetFormOrder() {
             this.formOrder = { pelangganId: '', jenis: 'Baliho Flexi', panjang: null, lebar: null, satuan: 'm', jumlah: 1, hargaM2: 25000, biayaDesain: 0, biayaFinishing: 0, dp: 0, metodeDp: 'Tunai', deadline: '', catatan: '' };
@@ -296,6 +307,7 @@ function app() {
         resetFormBayar() { this.formBayar = { orderNo: '', jenis: 'DP', metode: 'Tunai', jumlah: null }; this.bayarError = ''; },
         resetFormStok() { this.formStok = { bahan: '', tipe: 'Stok Masuk', jumlah: null }; this.stokError = ''; },
         resetFormUser() { this.formUser = { nama: '', email: '', role: 'Admin' }; this.userError = ''; },
+        resetFormDriver() { this.formDriver = { id: null, nama: '', kendaraan: '', hp: '', status: 'Aktif' }; this.driverError = ''; this.driverEditMode = false; },
 
         // ---------- data ----------
         customers: [
@@ -328,9 +340,9 @@ function app() {
 
         // ---------- kurir aktif (untuk ditugaskan mengantar order) ----------
         kurirAktif: [
-            { nama: 'Boas Douw', kendaraan: 'Motor Box · DS 4021 XY' },
-            { nama: 'Amos Kayame', kendaraan: 'Motor Box · DS 3312 QP' },
-            { nama: 'Nikolas Pekei', kendaraan: 'Pick-up Terbuka · DS 8890 T' },
+            { nama: 'Boas Douw', kendaraan: 'Motor Box · DS 4021 XY', hp: '6281240902277', rating: '4.9', inisial: 'BD', warna: '#C2141A' },
+            { nama: 'Amos Kayame', kendaraan: 'Motor Box · DS 3312 QP', hp: '6282199341102', rating: '4.8', inisial: 'AK', warna: '#0F6E6E' },
+            { nama: 'Nikolas Pekei', kendaraan: 'Pick-up Terbuka · DS 8890 T', hp: '6285244118890', rating: '5.0', inisial: 'NP', warna: '#7C5CFC' },
         ],
 
         // ---------- pengantaran (lacak lokasi kurir real-time via peta GPS) ----------
@@ -684,10 +696,15 @@ function app() {
         saveSession() {
             try {
                 localStorage.setItem(SESSION_KEY, JSON.stringify({
+                    // Format script.js (dibaca oleh loadSession() & $watch di dashboard.html)
                     loginRole: this.loginRole,
                     loginUserName: this.loginUserName,
                     loginCustomerId: this.loginCustomerId,
                     savedAt: Date.now(),
+                    // Format kompatibel login.html & index.html updateAuthHeaderState()
+                    user: this.loginUserName,
+                    username: this.loginUserName,
+                    role: this.loginRole,
                 }));
             } catch (e) { /* storage unavailable — sesi tetap jalan untuk tab ini saja */ }
         },
@@ -701,10 +718,20 @@ function app() {
             if (!raw) return;
             let data;
             try { data = JSON.parse(raw); } catch (e) { return; }
-            if (!data || !data.loginRole) return;
+            if (!data) return;
 
-            if (data.loginRole === 'Pelanggan') {
-                const cust = this.customers.find(c => c.id === data.loginCustomerId);
+            // Normalisasi lintas format: script.js pakai loginRole/loginUserName,
+            // login.html pakai role/user/username. Keduanya harus bisa dibaca di sini.
+            const role = data.loginRole || data.role;
+            const userName = data.loginUserName || data.user || data.username;
+            const customerId = data.loginCustomerId;
+            if (!role) return;
+
+            if (role === 'Pelanggan') {
+                // Cari pelanggan berdasarkan ID (numeric) atau nama (untuk sesi lama dari login.html)
+                const cust = customerId
+                    ? this.customers.find(c => c.id === customerId || String(c.id) === String(customerId))
+                    : (userName ? this.customers.find(c => c.nama === userName) : null);
                 if (!cust) return; // akun pelanggan sudah tidak ada — tetap di sesi default
                 this.loginRole = 'Pelanggan';
                 this.loginCustomerId = cust.id;
@@ -712,7 +739,7 @@ function app() {
                 return;
             }
 
-            const staff = this.users.find(u => u.nama === data.loginUserName && u.role === data.loginRole);
+            const staff = this.users.find(u => u.nama === userName && u.role === role);
             if (!staff || !staff.aktif) return; // user dihapus/dinonaktifkan — tetap di sesi default
             this.loginRole = staff.role;
             this.loginUserName = staff.nama;
@@ -1225,6 +1252,89 @@ function app() {
             u.aktif = !u.aktif;
             this.saveCoreData();
             this.toast(u.aktif ? ('✅ Akun "' + u.nama + '" diaktifkan.') : ('⛔ Akun "' + u.nama + '" dinonaktifkan.'));
+        },
+
+        hapusUser(u) {
+            if (u.role === 'Owner') {
+                this.toast('⚠️ Tidak dapat menghapus akun Owner utama.');
+                return;
+            }
+            if (!confirm('Hapus akun pengguna "' + u.nama + '" (' + u.email + ')?')) return;
+            this.users = this.users.filter(x => x.email !== u.email);
+            this.saveCoreData();
+            this.toast('🗑️ Pengguna "' + u.nama + '" telah dihapus.');
+        },
+
+        // ---------- CRUD Driver & Kurir Armada ----------
+        openAddDriver() {
+            this.resetFormDriver();
+        },
+
+        openEditDriver(d) {
+            this.driverEditMode = true;
+            this.formDriver = {
+                id: d.id || d.nama,
+                nama: d.nama || '',
+                kendaraan: d.kendaraan || '',
+                hp: d.hp || '',
+                status: d.status || 'Aktif'
+            };
+            this.driverError = '';
+        },
+
+        simpanDriver() {
+            if (!this.formDriver.nama.trim()) {
+                this.driverError = 'Nama driver wajib diisi.';
+                return;
+            }
+            if (!this.formDriver.kendaraan.trim()) {
+                this.driverError = 'Rincian armada & nomor plat wajib diisi.';
+                return;
+            }
+
+            if (!Array.isArray(this.kurirAktif)) this.kurirAktif = [];
+
+            if (this.driverEditMode && this.formDriver.id) {
+                const target = this.kurirAktif.find(k => (k.id === this.formDriver.id || k.nama === this.formDriver.nama));
+                if (target) {
+                    target.nama = this.formDriver.nama.trim();
+                    target.kendaraan = this.formDriver.kendaraan.trim();
+                    target.hp = this.formDriver.hp.trim();
+                    target.status = this.formDriver.status;
+                    target.inisial = target.nama.split(' ').map(n => n[0]).join('').toUpperCase();
+                }
+                this.toast('✅ Data driver "' + this.formDriver.nama + '" diperbarui.');
+            } else {
+                const colors = ['#C2141A', '#0F6E6E', '#7C5CFC', '#2A9D6B', '#FF6B2C'];
+                const inisial = this.formDriver.nama.trim().split(' ').map(n => n[0]).join('').toUpperCase();
+                const newDriver = {
+                    id: 'DRV-' + Date.now(),
+                    nama: this.formDriver.nama.trim(),
+                    kendaraan: this.formDriver.kendaraan.trim(),
+                    hp: this.formDriver.hp.trim() || '6281240902277',
+                    rating: '5.0',
+                    inisial: inisial,
+                    warna: colors[Math.floor(Math.random() * colors.length)],
+                    status: this.formDriver.status || 'Aktif'
+                };
+                this.kurirAktif.push(newDriver);
+                this.toast('🎉 Driver baru "' + newDriver.nama + '" ditambahkan.');
+            }
+
+            this.saveCoreData();
+            this.resetFormDriver();
+            try {
+                const el = document.getElementById('modalDriver');
+                const inst = window.bootstrap && el ? bootstrap.Modal.getInstance(el) : null;
+                if (inst) inst.hide();
+            } catch (e) { /* no-op */ }
+        },
+
+        hapusDriver(d) {
+            if (!confirm('Hapus driver "' + d.nama + '" dari daftar armada?')) return;
+            this.kurirAktif = this.kurirAktif.filter(k => k.nama !== d.nama && k.id !== d.id);
+            this.saveCoreData();
+            this.toast('🗑️ Driver "' + d.nama + '" dihapus.');
         },
 
         // ---------- Profile Management ----------
@@ -1836,7 +1946,7 @@ function app() {
             const start = this.formKirim.lokasiTujuan || TOKO_LOKASI;
             this._pickerMap = L.map(container, { zoomControl: true, attributionControl: false })
                 .setView([start.lat, start.lng], this.formKirim.lokasiTujuan ? 15 : 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._pickerMap);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(this._pickerMap);
 
             L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
                 icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [26, 26], iconAnchor: [13, 24] }),
@@ -1862,9 +1972,12 @@ function app() {
 
         // Menetapkan (atau memindahkan) pin tujuan pengantaran ke koordinat
         // tertentu — dipanggil dari klik peta, drag pin, geolokasi perangkat,
-        // atau tombol "pakai lokasi tersimpan pelanggan".
-        setLokasiPicker(lat, lng) {
-            this.formKirim.lokasiTujuan = { lat, lng };
+        // preset wilayah, atau tombol "pakai lokasi tersimpan pelanggan".
+        setLokasiPicker(lat, lng, labelOpt) {
+            this.formKirim.lokasiTujuan = { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
+            if (labelOpt && !this.formKirim.alamatTujuan) {
+                this.formKirim.alamatTujuan = labelOpt;
+            }
             this.kirimError = '';
             if (!this._pickerMap) return;
             const tujuanIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-tujuan">📍</div>', iconSize: [30, 30], iconAnchor: [15, 30] });
@@ -1872,12 +1985,29 @@ function app() {
                 this._pickerMarker = L.marker([lat, lng], { icon: tujuanIcon, draggable: true }).addTo(this._pickerMap);
                 this._pickerMarker.on('dragend', () => {
                     const ll = this._pickerMarker.getLatLng();
-                    this.formKirim.lokasiTujuan = { lat: ll.lat, lng: ll.lng };
+                    this.formKirim.lokasiTujuan = { lat: Number(ll.lat.toFixed(6)), lng: Number(ll.lng.toFixed(6)) };
                 });
             } else {
                 this._pickerMarker.setLatLng([lat, lng]);
             }
             this._pickerMap.panTo([lat, lng], { animate: true });
+        },
+
+        // Memilih preset lokasi wilayah umum Deiyai / Waghete
+        pilihPresetLokasi(presetKey) {
+            const presets = {
+                'waghete': { lat: -4.0346375, lng: 136.2877969, label: 'Pasar Waghete II, Deiyai' },
+                'bupati': { lat: -4.0250000, lng: 136.2950000, label: 'Kantor Bupati Deiyai, Tigi' },
+                'gereja': { lat: -4.0380000, lng: 136.2810000, label: 'Gereja Katolik St. Yohanes Waghete' },
+                'moanemani': { lat: -4.0500000, lng: 136.2700000, label: 'Simpang Moanemani (Arah Dogiyai)' },
+                'enarotali': { lat: -3.9200000, lng: 136.3500000, label: 'Pertigaan Enarotali (Arah Paniai)' }
+            };
+            const p = presets[presetKey];
+            if (p) {
+                this.setLokasiPicker(p.lat, p.lng, p.label);
+                if (this._pickerMap) this._pickerMap.setView([p.lat, p.lng], 15);
+                this.toast('📍 Lokasi preset dipilih: ' + p.label);
+            }
         },
 
         // Tombol bantu: pakai titik lokasi pelanggan yang sudah pernah
@@ -1886,11 +2016,12 @@ function app() {
             const order = this.selectedOrder;
             const customer = order ? this.customers.find(c => c.nama === order.pelanggan) : null;
             if (!customer || !customer.koordinat) {
-                this.kirimError = 'Belum ada lokasi tersimpan untuk pelanggan ini — silakan pilih manual di peta.';
+                this.kirimError = 'Belum ada lokasi tersimpan untuk pelanggan ini — silakan pilih manual di peta atau dari preset.';
                 return;
             }
-            this.setLokasiPicker(customer.koordinat.lat, customer.koordinat.lng);
+            this.setLokasiPicker(customer.koordinat.lat, customer.koordinat.lng, customer.alamat);
             if (this._pickerMap) this._pickerMap.setView([customer.koordinat.lat, customer.koordinat.lng], 15);
+            this.toast('📍 Menggunakan lokasi tersimpan pelanggan.');
         },
 
         // Tombol bantu: pakai lokasi GPS perangkat saat ini (mis. kurir/owner
@@ -1903,8 +2034,9 @@ function app() {
             this.kirimError = '';
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    this.setLokasiPicker(pos.coords.latitude, pos.coords.longitude);
+                    this.setLokasiPicker(pos.coords.latitude, pos.coords.longitude, 'Lokasi GPS Perangkat');
                     if (this._pickerMap) this._pickerMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                    this.toast('🎯 Lokasi GPS terdeteksi!');
                 },
                 () => { this.kirimError = 'Gagal mengambil lokasi GPS. Izinkan akses lokasi, atau pilih manual di peta.'; },
                 { enableHighAccuracy: true, timeout: 8000 }
@@ -2121,9 +2253,10 @@ function app() {
             if (!this._map) {
                 this._map = L.map(container, { zoomControl: true, attributionControl: true })
                     .setView([TOKO_LOKASI.lat, TOKO_LOKASI.lng], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     maxZoom: 19,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    subdomains: 'abcd',
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 }).addTo(this._map);
                 this._tokoIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [30, 30], iconAnchor: [15, 28] });
                 this._kurirIcon = L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-kurir">🛵</div>', iconSize: [30, 30], iconAnchor: [15, 28] });
@@ -2260,7 +2393,7 @@ function app() {
             const start = sudahAda ? c.koordinat : TOKO_LOKASI;
             this._plgMap = L.map(container, { zoomControl: true, attributionControl: false })
                 .setView([start.lat, start.lng], sudahAda ? 15 : 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._plgMap);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(this._plgMap);
             L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
                 icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [24, 24], iconAnchor: [12, 22] }),
                 interactive: false,
@@ -2333,7 +2466,7 @@ function app() {
             const start = sudahAda ? c.koordinat : TOKO_LOKASI;
             this._orderBaruMap = L.map(container, { zoomControl: true, attributionControl: false })
                 .setView([start.lat, start.lng], sudahAda ? 15 : 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this._orderBaruMap);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(this._orderBaruMap);
             L.marker([TOKO_LOKASI.lat, TOKO_LOKASI.lng], {
                 icon: L.divIcon({ className: '', html: '<div class="peta-pin peta-pin-toko">🏭</div>', iconSize: [24, 24], iconAnchor: [12, 22] }),
                 interactive: false,
@@ -2449,7 +2582,7 @@ function app() {
                 if (e.key === CORE_DATA_KEY) {
                     this.loadCoreData();
                     this.$nextTick(() => this.renderCharts());
-                } else if (e.key === 'kugiyaiLandingSettings') {
+                } else if (e.key === CMS_KEY || e.key === CMS_SYNC_KEY) {
                     this.loadLandingSettings();
                 }
             });
@@ -2623,7 +2756,7 @@ function app() {
                 promoAktif: true,
                 promoPesan: '🎉 PROMO KHUSUS: Diskon 10% untuk pesanan Baliho Flexi di atas 30 m²! Hubungi WhatsApp kami sekarang.',
                 heroEyebrow: 'Percetakan Digital · Waghete, Deiyai',
-                heroJudul: 'Baliho & spanduk tercetak tajam, terkirim cepat.',
+                heroJudul: 'Baliho &amp; spanduk<br>tercetak <em>tajam,</em><br>terkirim cepat.',
                 heroLead: 'Dari desain sampai pasang di lokasi — KugiyaiTobe melayani cetak baliho flexi, spanduk vinyl, banner roll up, dan stiker untuk instansi, gereja, koperasi, dan usaha di seluruh Papua Tengah.',
                 ctaJudul: 'Butuh baliho terpasang minggu ini?',
                 ctaLead: 'Kirim ukuran dan bahan yang Anda mau lewat WhatsApp — tim kami balas dalam hitungan menit di jam kerja.',
@@ -2631,7 +2764,7 @@ function app() {
                 heroBannerGaleri: [
                     'asset/img/banner-ticket/ticket-1.jpeg',
                     'asset/img/banner-ticket/ticket-6.jpeg',
-                    'asset/img/banner-ticket/ticket-4.jpeg',
+                    'asset/img/banner-ticket/ticket-4.jpg',
                 ],
                 heroBannerInterval: 3.5, // detik antar-slide
                 // heroBannerGambar dipertahankan (deprecated) hanya utk kompatibilitas data lama
@@ -2684,11 +2817,28 @@ function app() {
         },
 
         landingSettings: null, // diisi oleh loadLandingSettings() di init()
+        galeriSearch: '',
+        galeriCategoryFilter: 'Semua',
+        galeriViewMode: 'grid',
+
+        get filteredGaleri() {
+            if (!this.landingSettings || !Array.isArray(this.landingSettings.galeri)) return [];
+            let list = this.landingSettings.galeri;
+            if (this.galeriCategoryFilter && this.galeriCategoryFilter !== 'Semua') {
+                const cat = this.galeriCategoryFilter.toLowerCase();
+                list = list.filter(g => (g.jenis && g.jenis.toLowerCase().includes(cat)) || (g.nama && g.nama.toLowerCase().includes(cat)));
+            }
+            if (this.galeriSearch && this.galeriSearch.trim()) {
+                const q = this.galeriSearch.trim().toLowerCase();
+                list = list.filter(g => (g.nama && g.nama.toLowerCase().includes(q)) || (g.jenis && g.jenis.toLowerCase().includes(q)));
+            }
+            return list;
+        },
 
         heroBannerPresets: [
             { label: 'Toko Sinar Baliho', url: 'asset/img/banner-ticket/ticket-1.jpeg' },
             { label: 'Event Sentani', url: 'asset/img/banner-ticket/ticket-6.jpeg' },
-            { label: 'Spanduk Koperasi', url: 'asset/img/banner-ticket/ticket-4.jpeg' },
+            { label: 'Spanduk Koperasi', url: 'asset/img/banner-ticket/ticket-4.jpg' },
             { label: 'Gereja Immanuel', url: 'asset/img/banner-ticket/ticket-2.jpg' },
             { label: 'Dinas Pariwisata', url: 'asset/img/banner-ticket/ticket-3.jpeg' },
         ],
@@ -2963,9 +3113,11 @@ function app() {
         loadLandingSettings() {
             const defaults = this._defaultLanding();
             try {
-                const raw = localStorage.getItem('kugiyaiLandingSettings');
+                const raw = localStorage.getItem(CMS_KEY);
                 if (raw) {
-                    const saved = JSON.parse(raw);
+                    // Sanitasi otomatis data lama tersimpan: ubah ticket-4.jpeg -> ticket-4.jpg
+                    const rawClean = raw.replace(/ticket-4\.jpeg/g, 'ticket-4.jpg');
+                    const saved = JSON.parse(rawClean);
                     // Backfill heroBannerGambar jika dari penyimpanan lama belum ada
                     if (!saved.heroBannerGambar) saved.heroBannerGambar = defaults.heroBannerGambar;
                     // Backfill heroBannerGaleri: data lama cuma punya 1 foto (heroBannerGambar) → jadikan array
@@ -3018,12 +3170,12 @@ function app() {
         async saveLandingSettings(silent) {
             const isQuotaErr = (e) => e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
             const trySave = () => {
-                localStorage.setItem('kugiyaiLandingSettings', JSON.stringify(this.landingSettings));
+                localStorage.setItem(CMS_KEY, JSON.stringify(this.landingSettings));
                 // Tandai waktu simpan supaya tab index.html lain (jika sedang terbuka)
                 // bisa mendeteksi ada perubahan baru dan menerapkannya langsung,
                 // termasuk saat isi objek berubah tapi ukuran string persis sama
                 // (window 'storage' event tetap terpicu dari perubahan value ini).
-                localStorage.setItem('kugiyaiLandingSettingsSyncedAt', String(Date.now()));
+                localStorage.setItem(CMS_SYNC_KEY, String(Date.now()));
             };
 
             try {
@@ -3058,7 +3210,8 @@ function app() {
 
         resetLandingSettings() {
             if (!confirm('Reset semua pengaturan landing page ke nilai default?')) return;
-            localStorage.removeItem('kugiyaiLandingSettings');
+            localStorage.removeItem(CMS_KEY);
+            localStorage.removeItem(CMS_SYNC_KEY);
             this.landingSettings = this._defaultLanding();
             this.toast('🔄 Pengaturan dikembalikan ke default.');
         },
@@ -3324,6 +3477,18 @@ function app() {
             } catch (e) { /* no-op: nothing attached yet */ }
         },
         renderCharts() {
+            if (this._renderChartsTimer) {
+                clearTimeout(this._renderChartsTimer);
+            }
+            this._renderChartsTimer = setTimeout(() => {
+                this._doRenderCharts();
+            }, 60);
+        },
+        _doRenderCharts() {
+            // Grafik hanya relevan untuk halaman dashboard pengguna internal (Owner, Admin, Kasir, dll)
+            if (this.page !== 'dashboard' || this.loginRole === 'Pelanggan') {
+                return;
+            }
             const el = id => document.getElementById(id);
             if (typeof Chart === 'undefined') {
                 this._chartRetries = (this._chartRetries || 0) + 1;

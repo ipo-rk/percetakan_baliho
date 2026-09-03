@@ -899,38 +899,94 @@
                                 Perjalanan</div>
                             <template x-for="p in pengantaranAktif" :key="p.id">
                                 <div @click="pilihPeta(p)" role="button" tabindex="0" @keydown.enter="pilihPeta(p)"
-                                    class="w-full text-left card-hover rounded-xl border p-3 transition-colors cursor-pointer"
-                                    :class="petaFokusId===p.id ? 'border-primary bg-primary-light/40' : 'border-black/[0.06] bg-black/[0.015]'">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="font-mono text-xs text-primary font-semibold"
-                                            x-text="p.orderNo"></span>
-                                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                                            :class="p.status==='tiba' ? 'bg-amber-light text-amber' : 'bg-green-light text-green'"
-                                            x-text="p.status==='tiba' ? 'Tiba di Tujuan' : 'Dalam Perjalanan'"></span>
-                                    </div>
-                                    <div class="text-sm font-medium text-ink" x-text="p.pelanggan"></div>
-                                    <div class="text-[11px] text-steel mt-0.5"
-                                        x-text="'🛵 ' + p.kurir + ' · ' + p.kendaraan"></div>
-                                    <div class="mt-2 h-1.5 rounded-full bg-black/[0.08] overflow-hidden">
-                                        <div class="h-full bg-primary transition-all"
-                                            :style="'width:' + Math.round(p.progress*100) + '%'"></div>
-                                    </div>
-                                    <div class="flex items-center justify-between mt-1.5 text-[11px] text-steel">
-                                        <span x-text="p.jarakSisaKm.toFixed(1) + ' km lagi'"></span>
+                                    class="w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer relative overflow-hidden group shadow-xs hover:shadow-md"
+                                    :class="petaFokusId===p.id ? 'border-primary bg-gradient-to-br from-primary/5 via-white to-primary/10 ring-2 ring-primary/20' : 'border-black/[0.08] bg-white hover:border-black/20'">
+
+                                    <!-- Header: Order No & Status Badge -->
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="font-mono text-xs font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10"
+                                                x-text="p.orderNo"></span>
+                                            <span class="text-xs font-bold text-ink truncate max-w-[130px]"
+                                                x-text="p.pelanggan"></span>
+                                        </div>
                                         <span
-                                            x-text="p.status==='tiba' ? 'Menunggu konfirmasi' : ('ETA ' + p.etaMenit + ' mnt')"></span>
+                                            class="text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                                            :class="p.status==='tiba' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'"
+                                            x-text="p.status==='tiba' ? '🎯 Tiba di Tujuan' : '🚚 En Route'"></span>
                                     </div>
-                                    <div class="text-[10px] text-steel/70 mt-1"
-                                        x-text="'Diperbarui ' + relatif(p.updatedAt)"></div>
-                                    <div class="flex gap-2 mt-2" x-show="p.status==='tiba'" @click.stop>
+
+                                    <!-- Driver Profile Info Card -->
+                                    <div
+                                        class="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.03] border border-black/[0.04] my-2">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-9 h-9 rounded-xl bg-primary text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0"
+                                                x-text="p.kurir ? p.kurir.split(' ').map(n=>n[0]).join('') : 'KR'">
+                                            </div>
+                                            <div>
+                                                <div class="text-xs font-bold text-ink flex items-center gap-1">
+                                                    <span x-text="p.kurir"></span>
+                                                    <span class="text-[10px] text-amber-500 font-normal">⭐ 4.9</span>
+                                                </div>
+                                                <div class="text-[11px] text-steel font-mono" x-text="p.kendaraan">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a :href="'https://wa.me/6281240902277?text=Halo%20' + encodeURIComponent(p.kurir) + '%2C%20posisi%20pengantaran%20' + p.orderNo + '%20sudah%20sampai%20mana%3F'"
+                                            target="_blank" @click.stop
+                                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                <path
+                                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.65 2.65a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.43-1.27a2 2 0 0 1 2.11-.45c.86.31 1.75.53 2.65.65A2 2 0 0 1 22 16.92z"
+                                                    stroke="currentColor" stroke-width="2" />
+                                            </svg>
+                                            WA Kurir
+                                        </a>
+                                    </div>
+
+                                    <!-- Telemetry Progress Bar -->
+                                    <div class="space-y-1 mt-2">
+                                        <div class="flex items-center justify-between text-[11px] font-mono">
+                                            <span class="text-steel font-medium">Progress Perjalanan</span>
+                                            <span class="font-bold text-primary"
+                                                x-text="Math.round((p.progress||0)*100) + '%'"></span>
+                                        </div>
+                                        <div class="h-2 rounded-full bg-black/[0.08] overflow-hidden p-0.5">
+                                            <div class="h-full rounded-full bg-gradient-to-r from-primary to-amber-500 transition-all duration-500 shadow-xs"
+                                                :style="'width:' + Math.round((p.progress||0)*100) + '%'"></div>
+                                        </div>
+                                        <div
+                                            class="flex items-center justify-between text-[11px] text-steel font-mono pt-1">
+                                            <span>📍 Sisa: <strong class="text-ink"
+                                                    x-text="p.jarakSisaKm.toFixed(1) + ' km'"></strong></span>
+                                            <span>⏱️ ETA: <strong class="text-emerald-600"
+                                                    x-text="p.status==='tiba' ? 'Sampai' : ('~' + (p.etaMenit||0) + ' mnt')"></strong></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Location Footer -->
+                                    <div
+                                        class="mt-2.5 pt-2 border-t border-black/[0.05] flex items-center justify-between text-[10px] text-steel">
+                                        <span class="truncate max-w-[170px]"
+                                            x-text="'🎯 Tujuan: ' + (p.tujuan.label || p.pelanggan)"></span>
+                                        <span x-text="relatif(p.updatedAt)"></span>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-2 mt-3 pt-2 border-t border-black/[0.05]"
+                                        x-show="p.status==='tiba'" @click.stop>
                                         <button type="button" @click="konfirmasiTerima(p)"
-                                            class="btn-press flex-1 text-[11px] font-medium px-2 py-1.5 rounded-lg bg-green text-white hover:opacity-90">Konfirmasi
-                                            Diterima</button>
+                                            class="btn-press flex-1 text-xs font-bold py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors flex items-center justify-center gap-1.5">
+                                            ✓ Konfirmasi Paket Diterima
+                                        </button>
                                     </div>
-                                    <div class="flex gap-2 mt-2" x-show="p.status==='proses' && loginRole!=='Pelanggan'"
-                                        @click.stop>
+                                    <div class="flex gap-2 mt-3 pt-2 border-t border-black/[0.05]"
+                                        x-show="p.status==='proses' && loginRole!=='Pelanggan'" @click.stop>
                                         <button type="button" @click="batalkanKirim(p)"
-                                            class="btn-press flex-1 text-[11px] font-medium px-2 py-1.5 rounded-lg bg-black/[0.05] text-steel hover:bg-black/[0.08]">Batalkan</button>
+                                            class="btn-press flex-1 text-xs font-semibold py-1.5 rounded-xl bg-black/[0.04] text-crimson hover:bg-crimson/10 transition-colors">
+                                            ✕ Batalkan Pengantaran
+                                        </button>
                                     </div>
                                 </div>
                             </template>
@@ -1254,40 +1310,139 @@
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-soft border border-black/[0.04] overflow-hidden">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="text-left text-steel text-xs border-b border-black/[0.06] bg-black/[0.015]">
-                                    <th class="py-3 px-5 font-medium">Nama</th>
-                                    <th class="font-medium">Email</th>
-                                    <th class="font-medium">Peran</th>
-                                    <th class="font-medium">Status</th>
-                                    <th class="text-right pr-5 font-medium">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template x-for="u in users" :key="u.email">
-                                    <tr class="border-b border-black/[0.04] hover:bg-black/[0.015]">
-                                        <td class="py-3 px-5 flex items-center gap-2.5">
-                                            <div class="w-7 h-7 rounded-full bg-violet-light text-violet flex items-center justify-center text-[11px] font-semibold"
-                                                x-text="u.nama.charAt(0)"></div>
-                                            <span class="font-medium" x-text="u.nama"></span>
-                                        </td>
-                                        <td class="text-steel text-xs" x-text="u.email"></td>
-                                        <td><span class="text-[11px] font-medium px-2 py-1 rounded-md bg-black/[0.05]"
-                                                x-text="u.role"></span></td>
-                                        <td><span
-                                                :class="u.aktif ? 'bg-green-light text-green' : 'bg-black/[0.05] text-steel'"
-                                                class="text-[11px] font-medium px-2 py-1 rounded-md"
-                                                x-text="u.aktif ? 'Aktif' : 'Nonaktif'"></span></td>
-                                        <td class="text-right pr-5">
-                                            <button @click="toggleUserAktif(u)"
-                                                class="text-xs text-primary font-medium hover:underline"
-                                                x-text="u.aktif ? 'Nonaktifkan' : 'Aktifkan'"></button>
-                                        </td>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[560px]">
+                                <thead>
+                                    <tr
+                                        class="text-left text-steel text-xs border-b border-black/[0.06] bg-black/[0.015]">
+                                        <th class="py-3 px-5 font-medium">Nama</th>
+                                        <th class="font-medium">Email</th>
+                                        <th class="font-medium">Peran</th>
+                                        <th class="font-medium">Status</th>
+                                        <th class="text-right pr-5 font-medium">Aksi</th>
                                     </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <template x-for="u in users" :key="u.email">
+                                        <tr class="border-b border-black/[0.04] hover:bg-black/[0.015]">
+                                            <td class="py-3 px-5 flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded-full bg-violet-light text-violet flex items-center justify-center text-[11px] font-semibold"
+                                                    x-text="u.nama.charAt(0)"></div>
+                                                <span class="font-medium" x-text="u.nama"></span>
+                                            </td>
+                                            <td class="text-steel text-xs" x-text="u.email"></td>
+                                            <td><span
+                                                    class="text-[11px] font-medium px-2 py-1 rounded-md bg-black/[0.05]"
+                                                    x-text="u.role"></span></td>
+                                            <td><span
+                                                    :class="u.aktif ? 'bg-green-light text-green' : 'bg-black/[0.05] text-steel'"
+                                                    class="text-[11px] font-medium px-2 py-1 rounded-md"
+                                                    x-text="u.aktif ? 'Aktif' : 'Nonaktif'"></span></td>
+                                            <td class="text-right pr-5 space-x-2">
+                                                <button @click="toggleUserAktif(u)"
+                                                    class="text-xs text-primary font-medium hover:underline"
+                                                    x-text="u.aktif ? 'Nonaktifkan' : 'Aktifkan'"></button>
+                                                <button @click="hapusUser(u)" x-show="u.role !== 'Owner'"
+                                                    class="text-xs text-crimson font-medium hover:underline">Hapus</button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                <!-- =======================================================
+     SECTION 11 — MANAJEMEN DRIVER & ARMADA (Staff only)
+======================================================= -->
+                <section x-show="page==='driver' && loginRole!=='Pelanggan'" x-cloak
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0" class="space-y-5">
+
+                    <!-- Header Bar -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-display font-bold text-lg text-ink">Manajemen Driver &amp; Armada</h2>
+                            <p class="text-xs text-steel mt-0.5">Kelola data kurir pengantar, armada kendaraan, status
+                                ketersediaan, dan kontak WhatsApp.</p>
+                        </div>
+                        <button @click="openAddDriver()" data-bs-toggle="modal" data-bs-target="#modalDriver"
+                            class="btn-press bg-primary text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm shadow-primary/20 hover:bg-primary-dark">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.4"
+                                    stroke-linecap="round" />
+                            </svg>
+                            Tambah Driver Baru
+                        </button>
+                    </div>
+
+                    <!-- Driver Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <template x-for="d in kurirAktif" :key="d.nama">
+                            <div
+                                class="bg-white rounded-2xl p-4 border border-black/[0.08] shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+                                <div>
+                                    <!-- Card Header -->
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0"
+                                                :style="'background:' + (d.warna || '#C2141A')"
+                                                x-text="d.inisial || d.nama.substring(0,2).toUpperCase()"></div>
+                                            <div>
+                                                <div class="font-bold text-ink text-sm flex items-center gap-1.5">
+                                                    <span x-text="d.nama"></span>
+                                                    <span class="text-[11px] text-amber-500 font-semibold">⭐ <span
+                                                            x-text="d.rating || '5.0'"></span></span>
+                                                </div>
+                                                <div class="text-xs text-steel font-mono truncate max-w-[170px]"
+                                                    x-text="d.kendaraan"></div>
+                                            </div>
+                                        </div>
+                                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+                                            :class="(d.status==='Nonaktif') ? 'bg-black/[0.06] text-steel' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'"
+                                            x-text="d.status || 'Aktif'"></span>
+                                    </div>
+
+                                    <!-- Driver Info Badge -->
+                                    <div
+                                        class="p-2.5 rounded-xl bg-black/[0.02] border border-black/[0.04] text-xs space-y-1 mb-3">
+                                        <div class="flex justify-between items-center text-steel">
+                                            <span>Pengantaran Aktif:</span>
+                                            <span class="font-mono font-bold text-ink"
+                                                x-text="pengantaranAktif.filter(p=>p.kurir===d.nama).length + ' Pesanan'"></span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-steel">
+                                            <span>No HP / WhatsApp:</span>
+                                            <span class="font-mono font-semibold text-primary"
+                                                x-text="d.hp || '6281240902277'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Card Actions -->
+                                <div class="pt-3 border-t border-black/[0.05] flex items-center justify-between gap-2">
+                                    <a :href="'https://wa.me/' + (d.hp || '6281240902277') + '?text=Halo%20' + encodeURIComponent(d.nama) + '%2C%20ada%20tugas%20pengantaran%20baru.'"
+                                        target="_blank"
+                                        class="btn-press text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-xs">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                            <path
+                                                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.65 2.65a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.43-1.27a2 2 0 0 1 2.11-.45c.86.31 1.75.53 2.65.65A2 2 0 0 1 22 16.92z"
+                                                stroke="currentColor" stroke-width="2" />
+                                        </svg>
+                                        Hubungi WA
+                                    </a>
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" @click="openEditDriver(d)" data-bs-toggle="modal"
+                                            data-bs-target="#modalDriver"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-black/[0.04] hover:bg-black/[0.08] text-ink rounded-lg transition-colors">Edit</button>
+                                        <button type="button" @click="hapusDriver(d)"
+                                            class="p-1.5 text-xs text-crimson hover:bg-crimson/10 rounded-lg transition-colors"
+                                            title="Hapus Driver">✕</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </section>
 
@@ -1301,8 +1456,11 @@
 
                     <!-- TOPBAR ACTIONS -->
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-                        <p class="text-sm text-steel">Kelola konten <strong>index.html</strong> dari dashboard. Klik
-                            <strong>Simpan & Terapkan</strong> lalu refresh index.html.
+                        <p class="text-sm text-steel">Kelola konten <strong>index.html</strong> secara realtime dari
+                            dashboard. Klik
+                            <strong>Simpan &amp; Terapkan</strong> dan halaman <span
+                                class="font-mono text-primary">index.html</span> di tab lain akan tersinkronisasi
+                            otomatis tanpa perlu refresh!
                         </p>
                         <div class="flex gap-2 flex-wrap">
                             <a href="index.html" target="_blank"
@@ -1338,7 +1496,7 @@
                     </div>
 
                     <!-- TAB NAV -->
-                    <div class="flex gap-1 mb-5 bg-black/[0.03] p-1 rounded-xl w-fit">
+                    <div class="flex gap-1 mb-5 bg-black/[0.03] p-1 rounded-xl w-fit max-w-full overflow-x-auto">
                         <template
                             x-for="tab in [{k:'umum',l:'⚙️ Umum'},{k:'galeri',l:'🖼️ Galeri'},{k:'testimoni',l:'💬 Testimoni'},{k:'layanan',l:'📋 Layanan'}]"
                             :key="tab.k">
@@ -1436,8 +1594,123 @@
                                     <div>
                                         <div class="font-semibold text-sm">Banner Preview (Kartu Ticket)</div>
                                         <div class="text-xs text-steel">Visual "sedang dicetak" di sisi kanan hero —
-                                            kini
-                                            tampil sebagai slide
+                                            tampil sebagai slide pada landing page
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Live Interactive Ticket Card Preview (100% Mirror index.html Work Order Card) -->
+                                <div class="mb-5" x-data="{ activeIndex: 0 }">
+                                    <label class="field-label flex items-center justify-between">
+                                        <span>Pratinjau Langsung Kartu Ticket (Live Preview)</span>
+                                        <span class="text-[10px] text-steel font-mono">100% Presisi index.html</span>
+                                    </label>
+
+                                    <div
+                                        class="rounded-2xl p-4 sm:p-5 bg-[#0b1b3d] text-white border border-white/15 shadow-xl relative overflow-hidden group">
+                                        <!-- Corner Crop Marks (+) -->
+                                        <div
+                                            class="absolute top-2 left-2 text-white/30 font-mono text-xs select-none pointer-events-none">
+                                            +</div>
+                                        <div
+                                            class="absolute top-2 right-2 text-white/30 font-mono text-xs select-none pointer-events-none">
+                                            +</div>
+                                        <div
+                                            class="absolute bottom-2 left-2 text-white/30 font-mono text-xs select-none pointer-events-none">
+                                            +</div>
+                                        <div
+                                            class="absolute bottom-2 right-2 text-white/30 font-mono text-xs select-none pointer-events-none">
+                                            +</div>
+
+                                        <!-- Job Tag & Header Bar -->
+                                        <div
+                                            class="flex items-center justify-between text-[11px] font-mono mb-3 pb-2 border-b border-white/10">
+                                            <div class="flex items-center gap-2">
+                                                <span
+                                                    class="px-2 py-0.5 rounded bg-primary text-white font-bold tracking-wide shadow-sm"
+                                                    x-text="landingSettings.heroBannerTag || 'JOB #0150 · IN PRODUCTION'"></span>
+                                                <span class="text-white/60 text-[10px] hidden sm:inline">KUGIYAITOBE /
+                                                    <b>WORK ORDER</b></span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                <span>LIVE</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Banner Frame with Grommet Rings & Banner Copy Overlay -->
+                                        <div
+                                            class="relative aspect-video rounded-xl overflow-hidden border border-white/15 bg-black my-2 shadow-inner">
+                                            <!-- Grommet Eyelets 4 Corners -->
+                                            <div
+                                                class="absolute top-2 left-2 w-2.5 h-2.5 rounded-full border border-white/40 bg-zinc-800 shadow-xs z-10">
+                                            </div>
+                                            <div
+                                                class="absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-white/40 bg-zinc-800 shadow-xs z-10">
+                                            </div>
+                                            <div
+                                                class="absolute bottom-2 left-2 w-2.5 h-2.5 rounded-full border border-white/40 bg-zinc-800 shadow-xs z-10">
+                                            </div>
+                                            <div
+                                                class="absolute bottom-2 right-2 w-2.5 h-2.5 rounded-full border border-white/40 bg-zinc-800 shadow-xs z-10">
+                                            </div>
+
+                                            <!-- Active Slide Image -->
+                                            <template
+                                                x-if="landingSettings.heroBannerGaleri &amp;&amp; landingSettings.heroBannerGaleri.length">
+                                                <img :src="landingSettings.heroBannerGaleri[activeIndex % landingSettings.heroBannerGaleri.length] || landingSettings.heroBannerGaleri[0]"
+                                                    class="w-full h-full object-cover transition-all duration-300"
+                                                    alt="Ticket Preview">
+                                            </template>
+
+                                            <!-- Banner Copy Overlay -->
+                                            <div
+                                                class="absolute inset-x-0 bottom-0 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+                                                <div class="font-display font-bold text-sm sm:text-base tracking-tight text-white drop-shadow-sm"
+                                                    x-text="landingSettings.heroBannerJudul || 'TOKO SINAR BALIHO'">
+                                                </div>
+                                                <div class="text-[11px] sm:text-xs text-amber-300 font-mono uppercase tracking-wider font-semibold"
+                                                    x-text="landingSettings.heroBannerSub || 'Grand Opening · Waghete'">
+                                                </div>
+                                            </div>
+
+                                            <!-- Slide Nav Dots -->
+                                            <div class="absolute top-2.5 right-10 z-10 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded-full backdrop-blur-xs"
+                                                x-show="landingSettings.heroBannerGaleri &amp;&amp; landingSettings.heroBannerGaleri.length > 1">
+                                                <template x-for="(s, sIdx) in landingSettings.heroBannerGaleri"
+                                                    :key="sIdx">
+                                                    <button type="button" @click="activeIndex = sIdx"
+                                                        class="w-2 h-2 rounded-full transition-all"
+                                                        :class="activeIndex === sIdx ? 'bg-primary w-4' : 'bg-white/50 hover:bg-white'"></button>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <!-- 4-Column Metadata Specs Grid -->
+                                        <div
+                                            class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2.5 border-t border-white/10 text-[11px] font-mono">
+                                            <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                                                <span class="text-white/40 block text-[9px] font-semibold">UKURAN</span>
+                                                <span class="font-bold text-white truncate block"
+                                                    x-text="landingSettings.heroMetaUkuran || '3 × 4 m'"></span>
+                                            </div>
+                                            <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                                                <span class="text-white/40 block text-[9px] font-semibold">BAHAN</span>
+                                                <span class="font-bold text-white truncate block"
+                                                    x-text="landingSettings.heroMetaBahan || 'Flexi China 280gsm'"></span>
+                                            </div>
+                                            <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                                                <span
+                                                    class="text-white/40 block text-[9px] font-semibold">FINISHING</span>
+                                                <span class="font-bold text-white truncate block"
+                                                    x-text="landingSettings.heroMetaFinishing || 'Mata Ayam'"></span>
+                                            </div>
+                                            <div class="bg-white/5 p-2 rounded-lg border border-white/5">
+                                                <span
+                                                    class="text-white/40 block text-[9px] font-semibold">ESTIMASI</span>
+                                                <span class="font-bold text-white truncate block"
+                                                    x-text="landingSettings.heroMetaEstimasi || '2 hari kerja'"></span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1454,22 +1727,27 @@
                                         <div class="relative group rounded-xl overflow-hidden border border-black/10 bg-black/[0.04]"
                                             style="aspect-ratio: 16/11;">
                                             <img :src="img" class="w-full h-full object-cover">
+
+                                            <!-- Slide 1 Badge -->
                                             <span x-show="idx === 0"
-                                                class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-primary text-white shadow">Slide
+                                                class="absolute top-1.5 left-1.5 z-20 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-white shadow-sm pointer-events-none">Slide
                                                 1</span>
+
+                                            <!-- Action Overlay with Explicit z-20 Stacking -->
                                             <div
-                                                class="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                                                <div class="flex gap-1">
+                                                class="absolute inset-0 z-20 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-2 backdrop-blur-[2px]">
+                                                <div
+                                                    class="flex items-center gap-1.5 bg-black/80 p-1.5 rounded-xl border border-white/20 shadow-lg">
                                                     <button type="button" @click="moveHeroBannerSlide(idx, -1)"
                                                         :disabled="idx === 0"
-                                                        class="w-6 h-6 rounded-md bg-white/90 text-ink text-xs flex items-center justify-center disabled:opacity-30 btn-press"
+                                                        class="w-7 h-7 rounded-lg bg-white hover:bg-primary hover:text-white text-ink text-xs font-bold flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none btn-press transition-colors shadow-xs"
                                                         title="Geser ke kiri">‹</button>
                                                     <button type="button" @click="removeHeroBannerSlide(idx)"
-                                                        class="w-6 h-6 rounded-md bg-white/90 text-primary text-xs flex items-center justify-center btn-press"
+                                                        class="w-7 h-7 rounded-lg bg-crimson hover:bg-crimson/80 text-white text-xs font-bold flex items-center justify-center btn-press transition-colors shadow-xs"
                                                         title="Hapus slide">✕</button>
                                                     <button type="button" @click="moveHeroBannerSlide(idx, 1)"
                                                         :disabled="idx === landingSettings.heroBannerGaleri.length - 1"
-                                                        class="w-6 h-6 rounded-md bg-white/90 text-ink text-xs flex items-center justify-center disabled:opacity-30 btn-press"
+                                                        class="w-7 h-7 rounded-lg bg-white hover:bg-primary hover:text-white text-ink text-xs font-bold flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none btn-press transition-colors shadow-xs"
                                                         title="Geser ke kanan">›</button>
                                                 </div>
                                             </div>
@@ -1757,7 +2035,7 @@
 
                                                 <!-- Reorder Arrows floating -->
                                                 <div
-                                                    class="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 p-1 rounded-lg backdrop-blur-sm">
+                                                    class="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 p-1 rounded-lg backdrop-blur-sm shadow-md border border-white/20">
                                                     <button type="button" @click="moveGaleri(g, -1)" :disabled="i===0"
                                                         class="w-5 h-5 rounded bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-[10px] disabled:opacity-30 disabled:pointer-events-none"
                                                         title="Pindah ke atas">▲</button>
@@ -2610,49 +2888,118 @@
                                                         🛵 Kirim untuk Diantar
                                                     </button>
                                                     <div x-show="kirimPanelOpen" x-cloak
-                                                        class="rounded-xl border border-black/[0.06] p-3 bg-black/[0.015] space-y-2">
-                                                        <label class="field-label">Pilih Kurir</label>
-                                                        <select x-model="formKirim.kurir" class="input-field text-sm">
-                                                            <template x-for="k in kurirAktif" :key="k.nama">
-                                                                <option :value="k.nama"
-                                                                    x-text="k.nama + ' — ' + k.kendaraan">
-                                                                </option>
-                                                            </template>
-                                                        </select>
-
-                                                        <label class="field-label">Alamat Tujuan (opsional — untuk
-                                                            label popup di peta)</label>
-                                                        <input type="text" x-model="formKirim.alamatTujuan"
-                                                            class="input-field text-sm"
-                                                            placeholder="mis. Jl. Trans Papua No. 12, Waghete">
-
-                                                        <label class="field-label">Titik Lokasi Pengantaran — klik di
-                                                            peta untuk menandai, atau seret pin untuk
-                                                            menggeser</label>
-                                                        <div id="mapPilihLokasi" class="rounded-lg overflow-hidden"
-                                                            style="height:220px;width:100%;"></div>
-                                                        <div class="flex flex-wrap gap-2 pt-1">
-                                                            <button type="button" @click="gunakanLokasiTersimpan()"
-                                                                class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
-                                                                📌 Pakai Lokasi Tersimpan Pelanggan
-                                                            </button>
-                                                            <button type="button" @click="gunakanLokasiSaya()"
-                                                                class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-black/[0.05] hover:bg-black/[0.08] flex items-center gap-1">
-                                                                🎯 Pakai Lokasi Saya Sekarang
-                                                            </button>
+                                                        class="rounded-xl border border-black/[0.08] p-3.5 bg-slate-50 space-y-3 shadow-sm">
+                                                        <div
+                                                            class="flex items-center justify-between border-b border-black/[0.06] pb-2">
+                                                            <div
+                                                                class="font-semibold text-xs text-ink flex items-center gap-1.5">
+                                                                <span>📍</span>
+                                                                <span>Konfirmasi &amp; Pilih Lokasi Pengantaran</span>
+                                                            </div>
+                                                            <span
+                                                                class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Wajib
+                                                                Sebelum Dikirim</span>
                                                         </div>
-                                                        <p class="text-[10px]"
-                                                            :class="formKirim.lokasiTujuan ? 'text-green' : 'text-steel'"
-                                                            x-text="formKirim.lokasiTujuan ? '📍 Lokasi tujuan sudah ditandai.' : 'Belum ada lokasi ditandai — klik di peta di atas.'">
-                                                        </p>
+
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                            <div>
+                                                                <label class="field-label">Pilih Kurir / Armada</label>
+                                                                <select x-model="formKirim.kurir"
+                                                                    class="input-field text-sm bg-white">
+                                                                    <template x-for="k in kurirAktif" :key="k.nama">
+                                                                        <option :value="k.nama"
+                                                                            x-text="k.nama + ' — ' + k.kendaraan">
+                                                                        </option>
+                                                                    </template>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label class="field-label">Alamat / Patokan
+                                                                    Tujuan</label>
+                                                                <input type="text" x-model="formKirim.alamatTujuan"
+                                                                    class="input-field text-sm bg-white"
+                                                                    placeholder="mis. Jl. Trans Papua No. 12, Waghete">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Preset Lokasi Cepat -->
+                                                        <div>
+                                                            <label class="field-label text-[11px] text-steel mb-1">Pilih
+                                                                Cepat Preset Lokasi Wilayah (Deiyai / Waghete):</label>
+                                                            <div class="flex flex-wrap gap-1.5">
+                                                                <button type="button"
+                                                                    @click="pilihPresetLokasi('waghete')"
+                                                                    class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:border-primary hover:text-primary transition-colors">
+                                                                    🏪 Pasar Waghete II
+                                                                </button>
+                                                                <button type="button"
+                                                                    @click="pilihPresetLokasi('bupati')"
+                                                                    class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:border-primary hover:text-primary transition-colors">
+                                                                    🏛️ Bupati Deiyai (Tigi)
+                                                                </button>
+                                                                <button type="button"
+                                                                    @click="pilihPresetLokasi('gereja')"
+                                                                    class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:border-primary hover:text-primary transition-colors">
+                                                                    ⛪ Gereja St. Yohanes
+                                                                </button>
+                                                                <button type="button"
+                                                                    @click="pilihPresetLokasi('moanemani')"
+                                                                    class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:border-primary hover:text-primary transition-colors">
+                                                                    🛣️ Simpang Moanemani
+                                                                </button>
+                                                                <button type="button"
+                                                                    @click="pilihPresetLokasi('enarotali')"
+                                                                    class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-white border border-black/10 hover:border-primary hover:text-primary transition-colors">
+                                                                    🏔️ Pertigaan Enarotali
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Peta Interaktif Picker -->
+                                                        <div>
+                                                            <label
+                                                                class="field-label flex items-center justify-between">
+                                                                <span>Peta Interaktif (Klik / Seret Pin)</span>
+                                                                <span class="text-[10px] font-mono text-steel"
+                                                                    x-text="formKirim.lokasiTujuan ? formKirim.lokasiTujuan.lat + ', ' + formKirim.lokasiTujuan.lng : 'Pilih titik'"></span>
+                                                            </label>
+                                                            <div id="mapPilihLokasi"
+                                                                class="rounded-xl border border-black/10 overflow-hidden shadow-inner"
+                                                                style="height:230px;width:100%;"></div>
+                                                        </div>
+
+                                                        <div
+                                                            class="flex flex-wrap gap-2 items-center justify-between pt-1">
+                                                            <div class="flex gap-1.5">
+                                                                <button type="button" @click="gunakanLokasiTersimpan()"
+                                                                    class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] flex items-center gap-1 text-ink">
+                                                                    📌 Lokasi Pelanggan
+                                                                </button>
+                                                                <button type="button" @click="gunakanLokasiSaya()"
+                                                                    class="btn-press text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-white border border-black/10 hover:bg-black/[0.03] flex items-center gap-1 text-ink">
+                                                                    🎯 Lokasi Saya (GPS)
+                                                                </button>
+                                                            </div>
+
+                                                            <div class="text-right">
+                                                                <p class="text-[11px] font-semibold m-0"
+                                                                    :class="formKirim.lokasiTujuan ? 'text-green' : 'text-crimson'"
+                                                                    x-text="formKirim.lokasiTujuan ? '✓ Lokasi Tujuan Terkonfirmasi' : '⚠️ Belum Ada Lokasi Tujuan'">
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
                                                         <p class="field-error" x-show="kirimError" x-text="kirimError">
                                                         </p>
-                                                        <div class="flex gap-2 justify-end pt-1">
+
+                                                        <div
+                                                            class="flex gap-2 justify-end pt-2 border-t border-black/[0.06]">
                                                             <button type="button" @click="tutupFormKirim()"
-                                                                class="text-xs text-steel px-3 py-2">Batal</button>
+                                                                class="text-xs text-steel hover:text-ink px-3 py-2 rounded-lg font-medium">Batal</button>
                                                             <button type="button" @click="prosesKirim()"
-                                                                class="btn-press text-xs font-medium px-3.5 py-2 rounded-xl bg-primary text-white">Kirim
-                                                                Sekarang</button>
+                                                                class="btn-press text-xs font-semibold px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-dark shadow-sm">
+                                                                🚀 Konfirmasi &amp; Berangkatkan Kurir
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -3634,6 +3981,54 @@
                     <button type="button" @click="simpanUser()"
                         class="btn-press text-sm font-medium px-5 py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark">Simpan</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Tambah/Edit Driver -->
+    <div class="modal fade" id="modalDriver" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-3xl border-0 shadow-pop overflow-hidden">
+                <div class="modal-header border-0 px-6 pt-6 pb-2">
+                    <h5 class="font-display font-bold text-lg"
+                        x-text="driverEditMode ? 'Edit Data Driver' : 'Tambah Driver Baru'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" @click="resetFormDriver()"></button>
+                </div>
+                <form @submit.prevent="simpanDriver()">
+                    <div class="modal-body px-6 py-4 space-y-4">
+                        <div>
+                            <label class="field-label" for="driverNamaInput">Nama Lengkap Driver *</label>
+                            <input id="driverNamaInput" x-model="formDriver.nama" class="input-field" type="text"
+                                placeholder="mis. Boas Douw" required>
+                        </div>
+                        <div>
+                            <label class="field-label" for="driverHpInput">No. HP / WhatsApp *</label>
+                            <input id="driverHpInput" x-model="formDriver.hp" class="input-field" type="text"
+                                placeholder="6281240902277" required>
+                        </div>
+                        <div>
+                            <label class="field-label" for="driverKendaraanInput">Armada &amp; Nomor Plat *</label>
+                            <input id="driverKendaraanInput" x-model="formDriver.kendaraan" class="input-field"
+                                type="text" placeholder="mis. Motor Box · DS 4021 XY" required>
+                        </div>
+                        <div>
+                            <label class="field-label">Status Ketersediaan</label>
+                            <select x-model="formDriver.status" class="input-field bg-white">
+                                <option value="Aktif">Aktif &amp; Siap Mengantar</option>
+                                <option value="Nonaktif">Nonaktif / Istirahat</option>
+                            </select>
+                        </div>
+                        <p x-show="driverError" x-text="driverError" class="field-error"></p>
+                    </div>
+                    <div class="modal-footer border-0 px-6 pb-6 pt-2 flex justify-between">
+                        <button type="button"
+                            class="btn-press border border-black/10 text-sm font-medium px-4 py-2.5 rounded-xl text-steel hover:bg-black/[0.03]"
+                            data-bs-dismiss="modal" @click="resetFormDriver()">Batal</button>
+                        <button type="submit"
+                            class="btn-press bg-primary text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-primary-dark shadow-sm shadow-primary/20"
+                            x-text="driverEditMode ? 'Simpan Perubahan' : 'Tambah Driver'"></button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

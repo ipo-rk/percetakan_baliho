@@ -531,3 +531,60 @@ body {
 .live-dot-ping {
   animation: liveDotPing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
+
+/* =======================================================
+   RESPONSIVE OPTIMIZATIONS (Mobile & Tablet Viewports)
+======================================================= */
+@media (max-width: 768px) {
+  /* Prevent offcanvas sidebar from exceeding ultra-compact screen widths */
+  #mobileSidebar {
+    max-width: 85vw !important;
+  }
+
+  /* Responsive modal dialogs */
+  .modal-dialog {
+    margin: 0.5rem auto;
+  }
+
+  .modal-content {
+    border-radius: 1rem !important;
+  }
+
+  /* Ensure Leaflet maps adapt fluidly on mobile */
+  #mapPengantaran,
+  #mapDetailPengantaran,
+  #mapPilihLokasi,
+  #mapLokasiPelanggan,
+  #mapLokasiOrderBaru {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Profile modal header on mobile */
+  .profile-modal-head {
+    padding: 1.25rem 1rem 0.75rem;
+  }
+
+  .profile-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Touch padding for main dashboard view */
+  main {
+    padding: 0.75rem !important;
+  }
+
+  /* Momentum smooth scrolling on touch devices */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Kanban column size on smaller mobile screens */
+  .kanban-col {
+    width: 16.5rem !important;
+  }
+}

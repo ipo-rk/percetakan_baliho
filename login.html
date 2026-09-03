@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk Sistem &amp; Autentikasi — KUGIYAI.TOBE</title>
+    <meta name="description"
+        content="Halaman masuk dan pendaftaran akun sistem Percetakan Baliho &amp; Spanduk KugiyaiTobe Digital-Printing, Waghete, Deiyai, Papua Tengah.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="asset/css/style.css">
+
+    <style>
+        body {
+            background-color: var(--canvas-dark, #0b1b3d);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 380px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+        }
+
+        .auth-page-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: var(--canvas-dark, #0b1b3d);
+            pointer-events: none;
+        }
+
+        .auth-page-backdrop::before,
+        .auth-page-backdrop::after {
+            content: "";
+            position: absolute;
+            width: 28rem;
+            height: 28rem;
+            border-radius: 50%;
+            filter: blur(85px);
+        }
+
+        .auth-page-backdrop::before {
+            top: -6rem;
+            right: -6rem;
+            background: rgba(194, 20, 26, 0.25);
+        }
+
+        .auth-page-backdrop::after {
+            bottom: -6rem;
+            left: -6rem;
+            background: rgba(15, 110, 110, 0.25);
+        }
+
+        .login-page-card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 26rem;
+        }
+
+        .login-page-card .auth-modal {
+            opacity: 1 !important;
+            transform: none !important;
+            max-height: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="auth-backdrop auth-page-backdrop" aria-hidden="true"></div>
+
+    <main class="login-page-card">
+        <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+
+            <!-- Tombol Close ([X]) — HANYA tombol ini yang dapat kembali ke landing page -->
+            <a href="index.html" class="auth-close" aria-label="Tutup dan kembali ke Landing Page"
+                title="Kembali ke Landing Page">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 4L20 20M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </a>
+
+            <!-- Brand Logo -->
+            <div class="auth-brand">
+                <a href="index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem">
+                    <span class="auth-brand-mark">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9V3H18V9" stroke="white" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M6 18H4C3.44772 18 3 17.5523 3 17V11C3 10.4477 3.44772 10 4 10H20C20.5523 10 21 10.4477 21 11V17C21 17.5523 20.5523 18 20 18H18"
+                                stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <rect x="6" y="14" width="12" height="8" stroke="white" stroke-width="2" />
+                        </svg>
+                    </span>
+                    <span class="auth-brand-name">KUGIYAI<span>.TOBE</span></span>
+                </a>
+            </div>
+            <p class="auth-subtitle">KugiyaiTobe Digital-Printing — Waghete, Deiyai</p>
+
+            <!-- Auth Tabs -->
+            <div class="auth-tabs" data-auth-tabs>
+                <button type="button" class="auth-tab is-active" data-auth-tab="login">Masuk</button>
+                <button type="button" class="auth-tab" data-auth-tab="register">Daftar</button>
+                <button type="button" class="auth-tab" data-auth-tab="forgot">Lupa Sandi</button>
+            </div>
+
+            <!-- ===== LOGIN VIEW ===== -->
+            <form class="auth-view is-active" data-auth-view="login" novalidate>
+                <h2 class="auth-title" id="authTitle">Masuk ke sistem</h2>
+                <p class="auth-desc">Kelola pesanan baliho dari desain sampai kirim.</p>
+
+                <!-- Demo account quick-login (dropdown) -->
+                <div class="auth-demo">
+                    <div class="auth-demo-head">
+                        <span class="auth-demo-label">🚀 Coba Akun Demo</span>
+                        <span class="auth-demo-hint">Pilih peran → langsung masuk</span>
+                    </div>
+                    <div class="auth-demo-dropdown" data-auth-demo-dropdown>
+                        <button type="button" class="auth-demo-trigger" id="authDemoTrigger" aria-haspopup="listbox"
+                            aria-expanded="false" aria-controls="authDemoListbox">
+                            <span class="auth-demo-dot" data-demo-trigger-dot></span>
+                            <span class="auth-demo-trigger-text">
+                                <span class="auth-demo-role" data-demo-trigger-role>Pilih peran demo</span>
+                                <span class="auth-demo-who" data-demo-trigger-who>Owner · Admin · Designer · Operator ·
+                                    Kasir · Pelanggan</span>
+                            </span>
+                            <svg class="auth-demo-caret" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                aria-hidden="true">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                        <ul class="auth-demo-listbox" id="authDemoListbox" role="listbox"
+                            aria-label="Pilih peran akun demo" tabindex="-1" hidden>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Owner">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Owner</span>
+                                    <span class="auth-demo-who">Akses penuh</span>
+                                </span>
+                            </li>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Admin">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Admin</span>
+                                    <span class="auth-demo-who">Order &amp; stok</span>
+                                </span>
+                            </li>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Designer">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Designer</span>
+                                    <span class="auth-demo-who">Desain</span>
+                                </span>
+                            </li>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Operator Produksi">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Operator</span>
+                                    <span class="auth-demo-who">Produksi</span>
+                                </span>
+                            </li>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Kasir">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Kasir</span>
+                                    <span class="auth-demo-who">Pembayaran</span>
+                                </span>
+                            </li>
+                            <li class="auth-demo-option" role="option" tabindex="-1" data-demo-role="Pelanggan">
+                                <span class="auth-demo-dot"></span>
+                                <span>
+                                    <span class="auth-demo-role">Pelanggan</span>
+                                    <span class="auth-demo-who">Pesanan saya</span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="auth-divider"><span>Atau masuk dengan akun</span></div>
+
+                <label class="auth-label" for="authLoginUser">Nama pengguna / akun</label>
+                <input class="auth-input" type="text" id="authLoginUser" placeholder="Masukkan nama / email / HP"
+                    autocomplete="username">
+
+                <label class="auth-label" for="authLoginPass">Kata sandi</label>
+                <div class="auth-field-wrap">
+                    <input class="auth-input" type="password" id="authLoginPass" placeholder="••••••••"
+                        autocomplete="current-password">
+                    <button type="button" class="auth-eye" data-auth-eye="authLoginPass"
+                        aria-label="Tampilkan kata sandi">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                            <path d="M2 12S5.5 5 12 5S22 12 22 12S18.5 19 12 19S2 12 2 12Z" stroke="currentColor"
+                                stroke-width="1.8" stroke-linejoin="round" />
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="auth-row">
+                    <label class="auth-check">
+                        <input type="checkbox" checked> Ingat saya
+                    </label>
+                    <button type="button" class="auth-link" data-auth-tab="forgot">Lupa kata sandi?</button>
+                </div>
+
+                <p class="auth-error" data-auth-error="login"></p>
+
+                <button type="submit" class="auth-btn-primary">
+                    Masuk Sekarang
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+
+                <p class="auth-switch">Belum punya akun? <button type="button" class="auth-link"
+                        data-auth-tab="register">Daftar sebagai pelanggan</button></p>
+            </form>
+
+            <!-- ===== REGISTER VIEW ===== -->
+            <form class="auth-view" data-auth-view="register" novalidate>
+                <h2 class="auth-title">Daftar akun pelanggan</h2>
+                <p class="auth-desc">Buat akun untuk memantau &amp; membuat pesanan baliho Anda sendiri.</p>
+
+                <label class="auth-label" for="authRegNama">Nama lengkap / Usaha</label>
+                <input class="auth-input" type="text" id="authRegNama" placeholder="Nama Anda" autocomplete="name">
+
+                <div class="auth-grid-2">
+                    <div>
+                        <label class="auth-label" for="authRegHp">No. WhatsApp</label>
+                        <input class="auth-input" type="tel" id="authRegHp" placeholder="0812xxxxxxx"
+                            autocomplete="tel">
+                    </div>
+                    <div>
+                        <label class="auth-label" for="authRegInstansi">Instansi (opsional)</label>
+                        <input class="auth-input" type="text" id="authRegInstansi"
+                            placeholder="Toko / gereja / instansi">
+                    </div>
+                </div>
+
+                <label class="auth-label" for="authRegEmail">Email (opsional)</label>
+                <input class="auth-input" type="email" id="authRegEmail" placeholder="nama@email.com"
+                    autocomplete="email">
+
+                <div class="auth-grid-2">
+                    <div>
+                        <label class="auth-label" for="authRegPass">Kata sandi</label>
+                        <input class="auth-input" type="password" id="authRegPass" placeholder="Min. 6 karakter"
+                            autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="auth-label" for="authRegPass2">Konfirmasi sandi</label>
+                        <input class="auth-input" type="password" id="authRegPass2" placeholder="Ulangi sandi"
+                            autocomplete="new-password">
+                    </div>
+                </div>
+                <label class="auth-check auth-check-tight">
+                    <input type="checkbox" data-auth-eye-group="authRegPass,authRegPass2"> Tampilkan kata sandi
+                </label>
+
+                <p class="auth-error" data-auth-error="register"></p>
+
+                <button type="submit" class="auth-btn-primary">
+                    Buat Akun
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+
+                <p class="auth-switch">Sudah punya akun? <button type="button" class="auth-link"
+                        data-auth-tab="login">Masuk di sini</button></p>
+            </form>
+
+            <!-- ===== FORGOT PASSWORD VIEW ===== -->
+            <form class="auth-view" data-auth-view="forgot" novalidate>
+                <button type="button" class="auth-back" data-auth-tab="login">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    Kembali ke halaman masuk
+                </button>
+
+                <div data-auth-forgot-form>
+                    <h2 class="auth-title">Lupa kata sandi</h2>
+                    <p class="auth-desc">Masukkan email akun Anda, kami akan kirim tautan untuk mengatur ulang kata
+                        sandi.</p>
+
+                    <label class="auth-label" for="authForgotEmail">Email</label>
+                    <input class="auth-input" type="email" id="authForgotEmail" placeholder="nama@email.com"
+                        autocomplete="email">
+                    <p class="auth-error" data-auth-error="forgot"></p>
+
+                    <button type="submit" class="auth-btn-primary">
+                        Kirim Tautan Reset
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="auth-success" data-auth-forgot-success hidden>
+                    <div class="auth-success-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <h3 class="auth-title" style="font-size:1.05rem">Tautan terkirim!</h3>
+                    <p class="auth-desc">Periksa kotak masuk <strong data-auth-forgot-email></strong> untuk instruksi
+                        reset kata sandi.</p>
+                    <button type="button" class="auth-btn-primary" data-auth-tab="login">Kembali ke Halaman
+                        Masuk</button>
+                </div>
+            </form>
+
+            <a href="index.html" class="auth-direct-link">&larr; Kembali ke Landing Page</a>
+        </div>
+    </main>
+
+    <script>
+        (function () {
+            const CORE_DATA_KEY = 'kugiyaiCoreData_v1';
+            const SESSION_KEY = 'kugiyaiSession_v1';
+            const AUTH_PREFILL_KEY = 'kugiyaiAuthPrefill';
+
+            const card = document.querySelector('.login-page-card');
+            if (!card) return;
+
+            const tabBtns = card.querySelectorAll('[data-auth-tab]');
+            const views = card.querySelectorAll('[data-auth-view]');
+            const tabsWrap = card.querySelector('[data-auth-tabs]');
+
+            function setView(view) {
+                views.forEach(v => v.classList.toggle('is-active', v.dataset.authView === view));
+                tabBtns.forEach(b => {
+                    if (b.closest('[data-auth-tabs]')) {
+                        b.classList.toggle('is-active', b.dataset.authTab === view);
+                    }
+                });
+                if (tabsWrap) tabsWrap.style.display = view === 'forgot' ? 'none' : '';
+                card.querySelectorAll('.auth-error').forEach(e => { e.textContent = ''; e.classList.remove('is-visible'); });
+                if (view !== 'login' && typeof closeDemoDropdown === 'function') closeDemoDropdown();
+            }
+
+            tabBtns.forEach(b => b.addEventListener('click', () => setView(b.dataset.authTab)));
+
+            function showError(scope, msg) {
+                const el = card.querySelector('[data-auth-error="' + scope + '"]');
+                if (el) { el.textContent = msg; el.classList.add('is-visible'); }
+            }
+
+            // Password eye toggles
+            card.querySelectorAll('[data-auth-eye]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const input = document.getElementById(btn.dataset.authEye);
+                    if (!input) return;
+                    input.type = input.type === 'password' ? 'text' : 'password';
+                });
+            });
+
+            card.querySelectorAll('[data-auth-eye-group]').forEach(chk => {
+                chk.addEventListener('change', () => {
+                    chk.dataset.authEyeGroup.split(',').forEach(id => {
+                        const input = document.getElementById(id);
+                        if (input) input.type = chk.checked ? 'text' : 'password';
+                    });
+                });
+            });
+
+            const emailRe = /^\S+@\S+\.\S+$/;
+
+            // DEMO ACCOUNTS DROPDOWN
+            const DEMO_ACCOUNTS = {
+                'Owner': { username: 'admin@kugiyaitobe.id', role: 'Owner', who: 'Akses penuh' },
+                'Admin': { username: 'rian@kugiyaitobe.id', role: 'Admin', who: 'Order & stok' },
+                'Designer': { username: 'kevin@kugiyaitobe.id', role: 'Designer', who: 'Desain' },
+                'Operator Produksi': { username: 'dedi@kugiyaitobe.id', role: 'Operator Produksi', who: 'Produksi' },
+                'Kasir': { username: 'kasir.demo@kugiyaitobe.id', role: 'Kasir', who: 'Pembayaran' },
+                'Pelanggan': { username: 'Petrus Kambu', role: 'Pelanggan', who: 'Pesanan saya' },
+            };
+            const DEMO_PASSWORD = 'demo123';
+            const DEMO_LABELS = { 'Operator Produksi': 'Operator' };
+
+            const demoDropdown = card.querySelector('[data-auth-demo-dropdown]');
+            const demoTrigger = document.getElementById('authDemoTrigger');
+            const demoListbox = document.getElementById('authDemoListbox');
+            const demoTriggerDot = demoTrigger ? demoTrigger.querySelector('[data-demo-trigger-dot]') : null;
+            const demoTriggerRole = demoTrigger ? demoTrigger.querySelector('[data-demo-trigger-role]') : null;
+            const demoTriggerWho = demoTrigger ? demoTrigger.querySelector('[data-demo-trigger-who]') : null;
+            const demoOptions = demoListbox ? Array.from(demoListbox.querySelectorAll('[data-demo-role]')) : [];
+            const DEMO_HINT_DEFAULT = 'Owner · Admin · Designer · Operator · Kasir · Pelanggan';
+
+            function closeDemoDropdown() {
+                if (!demoDropdown) return;
+                demoDropdown.classList.remove('is-open');
+                demoListbox.hidden = true;
+                if (demoTrigger) demoTrigger.setAttribute('aria-expanded', 'false');
+            }
+
+            function openDemoDropdown() {
+                if (!demoDropdown) return;
+                demoDropdown.classList.add('is-open');
+                demoListbox.hidden = false;
+                if (demoTrigger) demoTrigger.setAttribute('aria-expanded', 'true');
+                const active = demoListbox.querySelector('.auth-demo-option.is-active') || demoOptions[0];
+                if (active) active.focus();
+            }
+
+            function saveSessionAndRedirect(userName, roleName, userEmail) {
+                const role = roleName || 'Pelanggan';
+                // Tulis KEDUA format sesi sekaligus agar kompatibel lintas halaman:
+                // - Format login.html: { user, role, username, email, loginAt }  (dibaca updateAuthHeaderState di index.html)
+                // - Format script.js:  { loginRole, loginUserName, savedAt }      (dibaca loadSession() di dashboard.html)
+                const sess = {
+                    // Format login.html / index.html
+                    user: userName,
+                    role: role,
+                    username: userName,
+                    email: userEmail || '',
+                    loginAt: new Date().toISOString(),
+                    // Format script.js / dashboard.html
+                    loginRole: role,
+                    loginUserName: userName,
+                    savedAt: Date.now(),
+                };
+                try {
+                    localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+                    sessionStorage.setItem(AUTH_PREFILL_KEY, JSON.stringify({ view: 'login', username: userName }));
+                } catch (e) { }
+
+                // Semua peran (termasuk Pelanggan) diarahkan ke dashboard.html
+                // agar sesi terbaca dengan benar oleh loadSession() di script.js.
+                window.location.href = 'dashboard.html';
+            }
+
+            function selectDemoRole(role) {
+                const account = DEMO_ACCOUNTS[role];
+                if (!account) return;
+                demoOptions.forEach(opt => opt.classList.toggle('is-active', opt.dataset.demoRole === role));
+                if (demoTriggerDot) demoTriggerDot.setAttribute('data-role', role);
+                if (demoTriggerRole) demoTriggerRole.textContent = DEMO_LABELS[role] || role;
+                if (demoTriggerWho) demoTriggerWho.textContent = account.who;
+                document.getElementById('authLoginUser').value = account.username;
+                document.getElementById('authLoginPass').value = DEMO_PASSWORD;
+                closeDemoDropdown();
+                if (demoTrigger) demoTrigger.classList.add('is-loading');
+
+                setTimeout(() => {
+                    saveSessionAndRedirect(account.username, account.role || role);
+                }, 300);
+            }
+
+            if (demoTrigger && demoListbox) {
+                demoTrigger.addEventListener('click', () => {
+                    if (demoDropdown.classList.contains('is-open')) closeDemoDropdown();
+                    else openDemoDropdown();
+                });
+
+                demoOptions.forEach((opt) => {
+                    opt.addEventListener('click', () => selectDemoRole(opt.dataset.demoRole));
+                    opt.addEventListener('keydown', (e) => {
+                        const idx = demoOptions.indexOf(opt);
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            (demoOptions[idx + 1] || demoOptions[0]).focus();
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            (demoOptions[idx - 1] || demoOptions[demoOptions.length - 1]).focus();
+                        } else if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            selectDemoRole(opt.dataset.demoRole);
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            closeDemoDropdown();
+                            demoTrigger.focus();
+                        }
+                    });
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (demoDropdown.classList.contains('is-open') && !demoDropdown.contains(e.target)) {
+                        closeDemoDropdown();
+                    }
+                });
+            }
+
+            // Login submit
+            const loginForm = card.querySelector('[data-auth-view="login"]');
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const user = document.getElementById('authLoginUser').value.trim();
+                const pass = document.getElementById('authLoginPass').value.trim();
+                if (!user) return showError('login', 'Nama pengguna / akun wajib diisi.');
+                if (!pass) return showError('login', 'Kata sandi wajib diisi.');
+
+                let role = 'Pelanggan';
+                const matchedDemo = Object.values(DEMO_ACCOUNTS).find(a => a.username.toLowerCase() === user.toLowerCase());
+                if (matchedDemo) {
+                    role = matchedDemo.role;
+                } else if (user.includes('admin') || user.includes('owner')) {
+                    role = 'Owner';
+                }
+
+                saveSessionAndRedirect(user, role);
+            });
+
+            // Register submit
+            const registerForm = card.querySelector('[data-auth-view="register"]');
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const nama = document.getElementById('authRegNama').value.trim();
+                const hp = document.getElementById('authRegHp').value.trim();
+                const instansi = document.getElementById('authRegInstansi').value.trim();
+                const email = document.getElementById('authRegEmail').value.trim();
+                const pass = document.getElementById('authRegPass').value;
+                const pass2 = document.getElementById('authRegPass2').value;
+
+                if (!nama || !hp) return showError('register', 'Nama dan No. WhatsApp wajib diisi.');
+                if (email && !emailRe.test(email)) return showError('register', 'Format email tidak valid.');
+                if (pass.length < 6) return showError('register', 'Kata sandi minimal 6 karakter.');
+                if (pass !== pass2) return showError('register', 'Konfirmasi kata sandi tidak cocok.');
+
+                let coreData = {};
+                try {
+                    const raw = localStorage.getItem(CORE_DATA_KEY);
+                    if (raw) coreData = JSON.parse(raw);
+                } catch (err) { }
+                if (!Array.isArray(coreData.customers)) coreData.customers = [];
+
+                let cust = coreData.customers.find(c => c.nama.toLowerCase() === nama.toLowerCase());
+                if (!cust) {
+                    // ID numerik auto-increment agar konsisten dengan Math.max() di script.js
+                    const existingIds = coreData.customers.map(c => Number(c.id)).filter(n => !isNaN(n));
+                    const nextId = existingIds.length ? Math.max(...existingIds) + 1 : 1;
+                    cust = {
+                        id: nextId,
+                        nama: nama,
+                        hp: hp,
+                        instansi: instansi || '-',
+                        alamat: 'Waghete, Deiyai',
+                        terdaftar: new Date().toISOString().split('T')[0]
+                    };
+                    coreData.customers.push(cust);
+                    try {
+                        localStorage.setItem(CORE_DATA_KEY, JSON.stringify(coreData));
+                    } catch (err) { }
+                }
+
+                saveSessionAndRedirect(nama, 'Pelanggan', email);
+            });
+
+            // Forgot password submit
+            const forgotForm = card.querySelector('[data-auth-view="forgot"]');
+            forgotForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('authForgotEmail').value.trim();
+                if (!email || !emailRe.test(email)) return showError('forgot', 'Masukkan alamat email yang valid.');
+                forgotForm.querySelector('[data-auth-forgot-form]').hidden = true;
+                const success = forgotForm.querySelector('[data-auth-forgot-success]');
+                success.hidden = false;
+                success.querySelector('[data-auth-forgot-email]').textContent = email;
+            });
+
+            // Check URL tab param
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam && ['login', 'register', 'forgot'].includes(tabParam)) {
+                setView(tabParam);
+            }
+        })();
+    </script>
+</body>
+
+</html>

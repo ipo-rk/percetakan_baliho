@@ -251,7 +251,6 @@ function app() {
         selectedDesign: null,
         globalSearch: '',
         notifOpen: false,
-        toasts: [],
         revenueRange: 'harian',
 
         avatarPresets: [
@@ -636,10 +635,69 @@ function app() {
 
         // ---------- helpers ----------
         rupiah(n) { return rupiah(n); },
+        // Notifikasi ringan (toast) — dirender via SweetAlert2 agar seluruh
+        // feedback aplikasi (notifikasi & konfirmasi) konsisten satu sistem.
         toast(msg) {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, msg });
-            setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 3200);
+            if (typeof Swal === 'undefined') { console.warn('[CETAK.OS] SweetAlert2 belum termuat:', msg); return; }
+            Swal.fire({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 3200,
+                timerProgressBar: true,
+                background: '#0B1B3D',
+                color: '#FFFFFF',
+                customClass: { popup: 'cetakos-toast-popup', timerProgressBar: 'cetakos-toast-bar' },
+                didOpen: (el) => {
+                    el.onmouseenter = Swal.stopTimer;
+                    el.onmouseleave = Swal.resumeTimer;
+                },
+                html: '<div class="cetakos-toast-inner"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17L4 12" stroke="#C2141A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>' + this._escapeHtml(msg) + '</span></div>'
+            });
+        },
+
+        // Escape sederhana agar teks dinamis (nama pelanggan/produk, dsb.) aman
+        // saat disisipkan sebagai HTML di dalam popup/toast SweetAlert2.
+        _escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        },
+
+        // Dialog konfirmasi terpusat berbasis SweetAlert2 — menggantikan
+        // window.confirm() bawaan browser agar tampil konsisten dengan gaya
+        // visual CETAK.OS (warna primary/steel, tipografi, radius, shadow).
+        // Mengembalikan Promise<boolean> — true jika pengguna menekan tombol konfirmasi.
+        async confirmSwal(message, opts = {}) {
+            if (typeof Swal === 'undefined') { console.warn('[CETAK.OS] SweetAlert2 belum termuat.'); return window.confirm(message); }
+            const {
+                title = 'Konfirmasi Tindakan',
+                confirmText = 'Ya, Lanjutkan',
+                cancelText = 'Batal',
+                danger = true,
+                icon = danger ? 'warning' : 'question'
+            } = opts;
+            const result = await Swal.fire({
+                title,
+                html: this._escapeHtml(message),
+                icon,
+                iconColor: '#C2141A',
+                showCancelButton: true,
+                reverseButtons: true,
+                focusCancel: true,
+                buttonsStyling: false,
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                customClass: {
+                    popup: 'cetakos-swal-popup',
+                    title: 'cetakos-swal-title',
+                    htmlContainer: 'cetakos-swal-html',
+                    actions: 'cetakos-swal-actions',
+                    confirmButton: 'cetakos-swal-btn ' + (danger ? 'cetakos-swal-btn-danger' : 'cetakos-swal-btn-primary'),
+                    cancelButton: 'cetakos-swal-btn cetakos-swal-btn-cancel'
+                }
+            });
+            return !!result.isConfirmed;
         },
 
         closeModal(id) {
@@ -1299,12 +1357,13 @@ function app() {
             this.toast(u.aktif ? ('✅ Akun "' + u.nama + '" diaktifkan.') : ('⛔ Akun "' + u.nama + '" dinonaktifkan.'));
         },
 
-        hapusUser(u) {
+        async hapusUser(u) {
             if (u.role === 'Owner') {
                 this.toast('⚠️ Tidak dapat menghapus akun Owner utama.');
                 return;
             }
-            if (!confirm('Hapus akun pengguna "' + u.nama + '" (' + u.email + ')?')) return;
+            const ok = await this.confirmSwal('Hapus akun pengguna "' + u.nama + '" (' + u.email + ')?', { title: 'Hapus Pengguna?', confirmText: 'Ya, Hapus' });
+            if (!ok) return;
             this.users = this.users.filter(x => x.email !== u.email);
             this.saveCoreData();
             this.toast('🗑️ Pengguna "' + u.nama + '" telah dihapus.');
@@ -1375,8 +1434,9 @@ function app() {
             } catch (e) { /* no-op */ }
         },
 
-        hapusDriver(d) {
-            if (!confirm('Hapus driver "' + d.nama + '" dari daftar armada?')) return;
+        async hapusDriver(d) {
+            const ok = await this.confirmSwal('Hapus driver "' + d.nama + '" dari daftar armada?', { title: 'Hapus Driver?', confirmText: 'Ya, Hapus' });
+            if (!ok) return;
             this.kurirAktif = this.kurirAktif.filter(k => k.nama !== d.nama && k.id !== d.id);
             this.saveCoreData();
             this.toast('🗑️ Driver "' + d.nama + '" dihapus.');
@@ -2257,8 +2317,9 @@ function app() {
             this.$nextTick(() => this.renderPetaMap());
         },
 
-        batalkanKirim(p) {
-            if (!confirm('Batalkan pengantaran ' + p.orderNo + '?')) return;
+        async batalkanKirim(p) {
+            const ok = await this.confirmSwal('Batalkan pengantaran ' + p.orderNo + '?', { title: 'Batalkan Pengantaran?', confirmText: 'Ya, Batalkan' });
+            if (!ok) return;
             p.status = 'batal';
             p.updatedAt = new Date().toISOString();
             p.riwayat.push({ event: 'Pengantaran dibatalkan', waktu: p.updatedAt });
@@ -2778,8 +2839,9 @@ function app() {
             return changed;
         },
 
-        resetSemuaData() {
-            if (!confirm('Kembalikan SEMUA data operasional (pelanggan, order, desain, pembayaran, stok, user) ke data demo awal? Perubahan yang sudah tersimpan akan hilang.')) return;
+        async resetSemuaData() {
+            const ok = await this.confirmSwal('Kembalikan SEMUA data operasional (pelanggan, order, desain, pembayaran, stok, user) ke data demo awal? Perubahan yang sudah tersimpan akan hilang.', { title: 'Reset Semua Data?', confirmText: 'Ya, Reset Semua', icon: 'error' });
+            if (!ok) return;
             if (!this._factoryData) return;
             CORE_DATA_FIELDS.forEach((key) => {
                 this[key] = JSON.parse(JSON.stringify(this._factoryData[key]));
@@ -3253,8 +3315,9 @@ function app() {
             }
         },
 
-        resetLandingSettings() {
-            if (!confirm('Reset semua pengaturan landing page ke nilai default?')) return;
+        async resetLandingSettings() {
+            const ok = await this.confirmSwal('Reset semua pengaturan landing page ke nilai default?', { title: 'Reset Landing Page?', confirmText: 'Ya, Reset' });
+            if (!ok) return;
             localStorage.removeItem(CMS_KEY);
             localStorage.removeItem(CMS_SYNC_KEY);
             this.landingSettings = this._defaultLanding();
@@ -3383,8 +3446,9 @@ function app() {
             this.toast(this._galeriEdit ? '✅ Item galeri diperbarui.' : '🎉 Item galeri baru berhasil ditambahkan.');
         },
 
-        deleteGaleri(item) {
-            if (!confirm('Hapus item galeri "' + item.nama + '" dari landing page?')) return;
+        async deleteGaleri(item) {
+            const ok = await this.confirmSwal('Hapus item galeri "' + item.nama + '" dari landing page?', { title: 'Hapus Item Galeri?', confirmText: 'Ya, Hapus' });
+            if (!ok) return;
             this.landingSettings.galeri = this.landingSettings.galeri.filter(g => g.id !== item.id);
             this.saveLandingSettings();
             this.toast('🗑️ Item galeri berhasil dihapus.');
@@ -3431,8 +3495,9 @@ function app() {
             this.closeModal('mdlTesti');
             this.toast(this._testiEdit ? '✅ Testimoni diperbarui.' : '🎉 Testimoni baru berhasil ditambahkan.');
         },
-        deleteTesti(item) {
-            if (!confirm('Hapus testimoni dari "' + item.nama + '"?')) return;
+        async deleteTesti(item) {
+            const ok = await this.confirmSwal('Hapus testimoni dari "' + item.nama + '"?', { title: 'Hapus Testimoni?', confirmText: 'Ya, Hapus' });
+            if (!ok) return;
             this.landingSettings.testimoni = this.landingSettings.testimoni.filter(t => t.id !== item.id);
             this.saveLandingSettings();
             this.toast('🗑️ Testimoni berhasil dihapus.');
@@ -3468,8 +3533,9 @@ function app() {
             this.closeModal('mdlLayanan');
             this.toast(this._layananEdit ? '✅ Layanan diperbarui.' : '🎉 Layanan baru berhasil ditambahkan.');
         },
-        deleteLayanan(item) {
-            if (!confirm('Hapus layanan "' + item.nama + '"?')) return;
+        async deleteLayanan(item) {
+            const ok = await this.confirmSwal('Hapus layanan "' + item.nama + '"?', { title: 'Hapus Layanan?', confirmText: 'Ya, Hapus' });
+            if (!ok) return;
             this.landingSettings.layanan = this.landingSettings.layanan.filter(l => l.id !== item.id);
             this.saveLandingSettings();
             this.toast('🗑️ Layanan berhasil dihapus.');
@@ -3530,8 +3596,11 @@ function app() {
             }, 60);
         },
         _doRenderCharts() {
-            // Grafik hanya relevan untuk halaman dashboard pengguna internal (Owner, Admin, Kasir, dll)
-            if (this.page !== 'dashboard' || this.loginRole === 'Pelanggan') {
+            // Grafik hanya relevan untuk halaman Dashboard & Laporan (pengguna internal:
+            // Owner, Admin, Kasir, dll). Kedua halaman ini punya canvas chart-nya
+            // masing-masing (chartRevenue/chartStatus untuk Dashboard,
+            // chartSales/chartProduk/chartBahan untuk Laporan — lihat blok di bawah).
+            if ((this.page !== 'dashboard' && this.page !== 'laporan') || this.loginRole === 'Pelanggan') {
                 return;
             }
             const el = id => document.getElementById(id);

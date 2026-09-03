@@ -20,7 +20,12 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="asset/css/dashboard.css">
-    <link rel="stylesheet" href="asset/css/tailwind.built.css">
+    <link rel="stylesheet" href="asset/css/tailwind.built.min.css">
+
+    <!-- SweetAlert2 — sistem tunggal untuk seluruh dialog konfirmasi & notifikasi
+         toast di aplikasi ini, menggantikan window.confirm()/alert() bawaan browser
+         agar tampilannya konsisten dengan gaya visual CETAK.OS. -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 </head>
 
@@ -4033,18 +4038,9 @@
         </div>
     </div>
 
-    <!-- ================= TOAST NOTIFICATIONS ================= -->
-    <div class="fixed bottom-5 right-5 z-[200] space-y-2 w-[calc(100%-2.5rem)] max-w-xs">
-        <template x-for="t in toasts" :key="t.id">
-            <div class="rise bg-ink text-white text-sm px-4 py-3 rounded-xl shadow-pop flex items-center gap-2">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" class="text-primary shrink-0">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                </svg>
-                <span x-text="t.msg"></span>
-            </div>
-        </template>
-    </div>
+    <!-- Notifikasi toast & dialog konfirmasi kini seluruhnya dirender oleh
+         SweetAlert2 (lihat toast() & confirmSwal() di asset/js/script.js),
+         sehingga container toast Alpine manual di atas sudah tidak diperlukan. -->
 
     <!-- CETAK.OS Application Script -->
     <script src="asset/js/script.js"></script>

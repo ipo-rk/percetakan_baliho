@@ -1149,7 +1149,7 @@ function app() {
         cetakApprovalDesain(d) {
             if (!d) return;
             const order = this.orders.find(o => o.no === d.orderNo) || { jenis: 'Cetak Digital', ukuran: 'Standar', jumlah: 1 };
-            const win = window.open('', '_blank');
+            const win = window.open('about:blank', '_blank');
             if (!win) { this.toast('Izinkan pop-up untuk mencetak Lembar Approval Desain.'); return; }
             const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -1583,7 +1583,7 @@ function app() {
 
         cetakNota(order, trx) {
             if (!order) return;
-            const win = window.open('', '_blank', 'width=440,height=660');
+            const win = window.open('about:blank', '_blank', 'width=440,height=660');
             if (!win) { this.toast('Izinkan pop-up untuk mencetak nota.'); return; }
             const isiTrx = trx ? (
                 '<tr><td>No Transaksi</td><td>' + trx.no + '</td></tr>' +
@@ -1622,7 +1622,7 @@ function app() {
 
         cetakSPK(order) {
             if (!order) return;
-            const win = window.open('', '_blank');
+            const win = window.open('about:blank', '_blank');
             if (!win) { this.toast('Izinkan pop-up untuk mencetak SPK.'); return; }
             const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             win.document.write(`
@@ -1713,7 +1713,7 @@ function app() {
 
         cetakInvoice(order) {
             if (!order) return;
-            const win = window.open('', '_blank');
+            const win = window.open('about:blank', '_blank');
             if (!win) { this.toast('Izinkan pop-up untuk mencetak Faktur.'); return; }
             const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             const isLunas = order.sisa <= 0;
@@ -1817,7 +1817,7 @@ function app() {
         },
 
         eksporPDF() {
-            const win = window.open('', '_blank');
+            const win = window.open('about:blank', '_blank');
             if (!win) { this.toast('Izinkan pop-up untuk mencetak / menyimpan PDF.'); return; }
             const nowStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             const rowsHtml = this.orders.map((o, idx) => `

@@ -14,18 +14,20 @@
     <link href="asset/css/bootstrap.min.css" rel="stylesheet">
     <script src="asset/js/chart.min.js"></script>
     <!-- Leaflet.js — dipakai oleh fitur Peta GPS Pengantaran (peta interaktif + tile OpenStreetMap).
-         Membutuhkan koneksi internet untuk memuat tile peta; sisa aplikasi tetap berjalan offline. -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+         Di-hosting lokal (bukan CDN) agar tidak diblokir Content-Security-Policy pada environment
+         yang membatasi script-src eksternal; koneksi internet tetap dibutuhkan hanya untuk memuat
+         tile peta OpenStreetMap saat runtime, sisa aplikasi tetap berjalan offline. -->
+    <link rel="stylesheet" href="asset/css/leaflet.css">
+    <script src="asset/js/leaflet.js"></script>
     <link rel="stylesheet" href="asset/css/dashboard.css">
     <link rel="stylesheet" href="asset/css/tailwind.built.min.css">
 
     <!-- SweetAlert2 — sistem tunggal untuk seluruh dialog konfirmasi & notifikasi
          toast di aplikasi ini, menggantikan window.confirm()/alert() bawaan browser
-         agar tampilannya konsisten dengan gaya visual CETAK.OS. -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+         agar tampilannya konsisten dengan gaya visual CETAK.OS. Di-hosting lokal
+         (bukan CDN) agar tidak diblokir Content-Security-Policy "script-src". -->
+    <link rel="stylesheet" href="asset/css/sweetalert2.min.css">
+    <script src="asset/js/sweetalert2.min.js"></script>
 
 </head>
 

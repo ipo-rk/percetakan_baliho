@@ -1,4 +1,4 @@
-﻿# Direktori Diagram Arsitektur & Perancangan Sistem (Mermaid)
+# Direktori Diagram Arsitektur & Perancangan Sistem (Mermaid)
 
 Direktori ini memuat seluruh berkas spesifikasi diagram **Mermaid (.mmd)** mandiri untuk sistem **CETAK.OS — Percetakan Digital KugiyaiTobe (Waghete, Deiyai)**.
 

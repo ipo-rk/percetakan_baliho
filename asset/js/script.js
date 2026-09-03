@@ -81,7 +81,7 @@ function canonicalLandingImages(saved, defaults) {
 
 // Titik keberangkatan (asal) seluruh pengantaran: lokasi toko/percetakan
 // di Waghete, Deiyai, Papua Tengah.
-const TOKO_LOKASI = { lat: -4.0346375, lng: 136.2877969, label: 'Percetakan Kugiyaidimi — Jl. Mugou Kebo, Waghete II, Kec. Tigi, Kab. Deiyai, Papua Tengah 98764' };
+const TOKO_LOKASI = { lat: -4.0346375, lng: 136.2877969, label: 'Percetakan KugiyaiTobe — Jl. Mugou Kebo, Waghete II, Kec. Tigi, Kab. Deiyai, Papua Tengah 98764' };
 window.TOKO_LOKASI = TOKO_LOKASI;
 
 // Jarak garis-lurus antar 2 koordinat (haversine), hasil dalam kilometer.

@@ -671,7 +671,7 @@
                 const gambar = _canonicalAssetPath(item && item.gambar, 'gallery');
                 return gambar ? { ...item, gambar } : null;
             }).filter(Boolean);
-            if (!normalized.galeri.length) normalized.galeri = LANDING_DEFAULTS.galeri.map((item, index) => ({
+            if (!normalized.galeri.length) normalized.galeri = defaultGallery.map((item, index) => ({
                 ...item,
                 gambar: LANDING_ASSET_PATHS.gallery[index],
             }));
